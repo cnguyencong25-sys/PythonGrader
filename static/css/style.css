@@ -340,6 +340,16 @@ body.auth-page {
   font-weight: 700;
 }
 
+.brand-mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 3px;
+  border-radius: inherit;
+  background: #fff;
+  object-fit: contain;
+}
+
 .auth-box .brand {
   margin: 0;
   color: var(--ui-ink);
@@ -442,16 +452,29 @@ body.auth-page {
   font-size: 14px;
 }
 
-.public-exam-brand span {
+.public-exam-brand img {
   display: grid;
   width: 32px;
   height: 32px;
-  place-items: center;
+  flex: 0 0 auto;
+  padding: 2px;
   border-radius: 10px;
-  background: #eef0ff;
-  color: #5969d8;
-  font-size: 11px;
-  font-weight: 800;
+  background: #fff;
+  object-fit: contain;
+}
+
+.public-sidebar-header .public-exam-brand {
+  gap: 8px;
+  padding: 0 0 12px;
+  border: 0;
+  color: #fff;
+  font-size: 12px;
+}
+
+.public-sidebar-header .public-exam-brand img {
+  width: 29px;
+  height: 29px;
+  border-radius: 8px;
 }
 
 .public-exam-intro {
@@ -639,6 +662,31 @@ body.auth-page {
   border-radius: 13px;
   background: rgba(255, 255, 255, 0.11);
   font-size: 22px;
+}
+
+.profile-brand-mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 3px;
+  border-radius: inherit;
+  background: #fff;
+  object-fit: contain;
+}
+
+.student-dashboard-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.student-dashboard-brand img {
+  width: 34px;
+  height: 34px;
+  padding: 3px;
+  border-radius: 9px;
+  background: #fff;
+  object-fit: contain;
 }
 
 .profile-body .profile-header-title h1 {

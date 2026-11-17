@@ -23,6 +23,7 @@ from session_manager import (
     verify_session, list_active_sessions, count_active_sessions,
     IDLE_TIMEOUT_MINUTES
 )
+from time_utils import vietnam_datetime_local_value
 
 
 def create_app(test_config=None):
@@ -34,6 +35,7 @@ def create_app(test_config=None):
     db.init_app(app)
     bcrypt.init_app(app)
     jwt.init_app(app)
+    app.jinja_env.filters["vietnam_datetime_local"] = vietnam_datetime_local_value
 
     # Đăng ký các Blueprint (API)
     app.register_blueprint(auth_bp)
@@ -497,6 +499,29 @@ def _upgrade_existing_schema():
                 {"code": secrets.token_urlsafe(12), "id": row[0]},
             )
         connection.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_exams_access_code ON exams (access_code)"))
+        if db.engine.dialect.name == "postgresql":
+            connection.execute(text(
+                "CREATE TABLE IF NOT EXISTS app_schema_migrations "
+                "(version VARCHAR(100) PRIMARY KEY)"
+            ))
+            migration_version = "2026-11-exam-times-vietnam"
+            migration_insert = connection.execute(
+                text(
+                    "INSERT INTO app_schema_migrations (version) VALUES (:version) "
+                    "ON CONFLICT (version) DO NOTHING"
+                ),
+                {"version": migration_version},
+            )
+            if migration_insert.rowcount:
+                # Earlier naive values were interpreted as UTC by PostgreSQL.
+                connection.execute(text(
+                    "UPDATE exams SET start_time = start_time - INTERVAL '7 hours' "
+                    "WHERE start_time IS NOT NULL"
+                ))
+                connection.execute(text(
+                    "UPDATE exams SET end_time = end_time - INTERVAL '7 hours' "
+                    "WHERE end_time IS NOT NULL"
+                ))
 
     # Older authenticated exam sessions could have UTC finish times while starts
     # were stored as Vietnam-local naive datetimes.

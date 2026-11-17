@@ -164,6 +164,7 @@ class PublicExamFlowTests(unittest.TestCase):
     def test_public_exam_pages_render_without_student_login(self):
         join_page = self.client.get(f"/exam/{self.access_code}")
         self.assertEqual(join_page.status_code, 200)
+        self.assertIn(b"/static/img/Vimaru.png", join_page.data)
         started = self.start_exam()
         workspace_page = self.client.get(
             f"/exam/{self.access_code}/workspace/{started.json['session_id']}"
@@ -172,8 +173,13 @@ class PublicExamFlowTests(unittest.TestCase):
         self.assertIn(b'id="studentThemeToggle"', workspace_page.data)
         self.assertIn(b"/static/js/student_theme.js", workspace_page.data)
         self.assertIn(b"/static/js/student_code_editor.js", workspace_page.data)
+        self.assertIn(b"/static/img/Vimaru.png", workspace_page.data)
         self.assertIn(b'id="problemOutputFormat"', workspace_page.data)
         self.assertIn(b'id="problemConstraints"', workspace_page.data)
+        logo = self.client.get("/static/img/Vimaru.png")
+        self.assertEqual(logo.status_code, 200)
+        self.assertEqual(logo.mimetype, "image/png")
+        logo.close()
 
     def test_teacher_exam_pages_render_redesigned_forms(self):
         with self.app.app_context():
@@ -184,14 +190,68 @@ class PublicExamFlowTests(unittest.TestCase):
             exam_id = self.exam.id
         self.client.set_cookie("access_token_cookie", token)
 
+        login_page = self.client.get("/login")
+        self.assertIn(b"/static/img/Vimaru.png", login_page.data)
         exam_list = self.client.get("/teacher/exams")
         self.assertEqual(exam_list.status_code, 200)
+        self.assertIn(b"/static/img/Vimaru.png", exam_list.data)
         self.assertIn(b"exam-modal", exam_list.data)
         exam_edit = self.client.get(f"/teacher/exams/{exam_id}/edit")
         self.assertEqual(exam_edit.status_code, 200)
         self.assertIn(b"exam-settings-grid", exam_edit.data)
         self.assertIn(b"examPassword", exam_edit.data)
         self.assertNotIn(b"studentExamLink", exam_edit.data)
+
+    def test_exam_schedule_keeps_vietnam_local_time_when_created_and_edited(self):
+        with self.app.app_context():
+            teacher = User.query.filter_by(email="teacher-test@example.invalid").first()
+            token = create_access_token(
+                identity=str(teacher.id),
+                additional_claims={"role": "teacher"},
+            )
+        self.client.set_cookie("access_token_cookie", token)
+
+        created = self.client.post(
+            "/api/exams",
+            json={
+                "name": "Bài thi giờ Việt Nam",
+                "start_time": "2026-11-17T01:56",
+                "end_time": "2026-11-20T01:00",
+                "duration_minutes": 60,
+                "exam_password": "exam-pass",
+            },
+        )
+        self.assertEqual(created.status_code, 201)
+        exam_id = created.json["exam"]["id"]
+        self.assertEqual(
+            created.json["exam"]["start_time"],
+            "2026-11-17T01:56:00+07:00",
+        )
+        self.assertEqual(
+            created.json["exam"]["end_time"],
+            "2026-11-20T01:00:00+07:00",
+        )
+
+        exam_page = self.client.get(f"/teacher/exams/{exam_id}/edit")
+        self.assertIn(b'value="2026-11-17T01:56"', exam_page.data)
+        self.assertIn(b'value="2026-11-20T01:00"', exam_page.data)
+
+        updated = self.client.put(
+            f"/api/exams/{exam_id}",
+            json={
+                "start_time": "2026-11-17T02:30",
+                "end_time": "2026-11-20T02:00",
+            },
+        )
+        self.assertEqual(updated.status_code, 200)
+        self.assertEqual(
+            updated.json["exam"]["start_time"],
+            "2026-11-17T02:30:00+07:00",
+        )
+        self.assertEqual(
+            updated.json["exam"]["end_time"],
+            "2026-11-20T02:00:00+07:00",
+        )
 
     def test_multiple_sample_examples_round_trip_for_chapter_and_exam_questions(self):
         examples = [

@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Thi trực tuyến — {{ exam.name }}</title>
+  <link rel="icon" type="image/png" href="/static/img/Vimaru.png">
   <script src="/static/js/student_theme.js"></script>
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="stylesheet" href="/static/css/student.css">
@@ -17,6 +18,7 @@
   <div class="public-workspace" data-session-id="{{ session_id }}">
     <aside class="public-sidebar">
       <header class="public-sidebar-header">
+        <div class="public-exam-brand"><img src="/static/img/Vimaru.png" alt=""><strong>Python Grader</strong></div>
         <span class="public-exam-label">PHÒNG THI TRỰC TUYẾN</span>
         <h2>{{ exam.name }}</h2>
       </header>

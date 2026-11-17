@@ -453,8 +453,9 @@ body {
   height: 36px;
   place-items: center;
   border-radius: 11px;
-  background: rgba(126, 145, 255, 0.18);
-  font-size: 20px;
+  padding: 3px;
+  background: #fff;
+  object-fit: contain;
 }
 
 .student-layout .sidebar-menu {

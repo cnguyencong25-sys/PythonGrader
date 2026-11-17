@@ -9,6 +9,22 @@ def vietnam_now_naive():
     return datetime.now(VIETNAM_TZ).replace(tzinfo=None)
 
 
+def vietnam_aware(value):
+    if value.tzinfo is None:
+        return value.replace(tzinfo=VIETNAM_TZ)
+    return value.astimezone(VIETNAM_TZ)
+
+
+def vietnam_local_naive(value):
+    return vietnam_aware(value).replace(tzinfo=None)
+
+
+def vietnam_datetime_local_value(value):
+    if value is None:
+        return ""
+    return vietnam_aware(value).strftime("%Y-%m-%dT%H:%M")
+
+
 def utc_now_naive():
     return datetime.now(UTC).replace(tzinfo=None)
 
@@ -16,11 +32,7 @@ def utc_now_naive():
 def vietnam_iso(value):
     if value is None:
         return None
-    if value.tzinfo is None:
-        value = value.replace(tzinfo=VIETNAM_TZ)
-    else:
-        value = value.astimezone(VIETNAM_TZ)
-    return value.isoformat()
+    return vietnam_aware(value).isoformat()
 
 
 def utc_iso(value):

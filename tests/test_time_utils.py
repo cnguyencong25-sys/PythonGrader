@@ -2,7 +2,13 @@ import unittest
 from datetime import datetime, timedelta, timezone
 
 from models import ChapterSession, ExamSession
-from time_utils import utc_iso, vietnam_elapsed_seconds, vietnam_iso
+from time_utils import (
+    utc_iso,
+    vietnam_datetime_local_value,
+    vietnam_elapsed_seconds,
+    vietnam_iso,
+    vietnam_local_naive,
+)
 
 
 class TimeUtilityTests(unittest.TestCase):
@@ -14,6 +20,23 @@ class TimeUtilityTests(unittest.TestCase):
         self.assertEqual(vietnam_iso(utc_aware), "2026-06-10T17:00:00+07:00")
         vietnam_aware = vietnam_local.replace(tzinfo=timezone(timedelta(hours=7)))
         self.assertEqual(utc_iso(vietnam_aware), "2026-06-10T10:00:00+00:00")
+
+    def test_vietnam_local_datetime_inputs_preserve_wall_clock_time(self):
+        stored_utc = datetime(2026, 11, 16, 18, 56, tzinfo=timezone.utc)
+        local_naive = datetime(2026, 11, 17, 1, 56)
+
+        self.assertEqual(
+            vietnam_datetime_local_value(stored_utc),
+            "2026-11-17T01:56",
+        )
+        self.assertEqual(
+            vietnam_local_naive(stored_utc),
+            local_naive,
+        )
+        self.assertEqual(
+            vietnam_iso(stored_utc),
+            "2026-11-17T01:56:00+07:00",
+        )
 
     def test_elapsed_time_uses_vietnam_wall_clock_values(self):
         started_at = datetime(2026, 6, 10, 17, 0)

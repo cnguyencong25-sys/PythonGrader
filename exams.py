@@ -9,7 +9,13 @@ import os
 import statistics
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
-from time_utils import vietnam_elapsed_seconds, vietnam_iso, vietnam_now_naive
+from time_utils import (
+    VIETNAM_TZ,
+    vietnam_elapsed_seconds,
+    vietnam_iso,
+    vietnam_local_naive,
+    vietnam_now_naive,
+)
 from sample_cases import sample_fields_from_payload
 
 exams_bp = Blueprint("exams", __name__, url_prefix="/api/exams")
@@ -19,11 +25,16 @@ def _json_error(msg, code=400):
 
 def _parse_datetime(s):
     if not s: return None
-    s = s.strip().replace(" ", "T")
-    for fmt in ("%Y-%m-%dT%H:%M", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):
-        try: return datetime.strptime(s, fmt)
-        except ValueError: continue
-    return None
+    if not isinstance(s, str):
+        return None
+    value = s.strip().replace(" ", "T")
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=VIETNAM_TZ)
+    return parsed.astimezone(VIETNAM_TZ)
 
 # ============================================================
 # 1. DANH SÁCH BÀI KIỂM TRA
@@ -78,7 +89,11 @@ def create_exam():
     start_time = _parse_datetime(start_time_str)
     end_time = _parse_datetime(end_time_str)
     
-    if start_time and end_time and start_time >= end_time:
+    if (
+        start_time
+        and end_time
+        and vietnam_local_naive(start_time) >= vietnam_local_naive(end_time)
+    ):
         return _json_error("Thời gian kết thúc phải sau thời gian bắt đầu.")
 
     exam = Exam(
@@ -117,7 +132,12 @@ def update_exam(eid):
     if "end_time" in data:
         exam.end_time = _parse_datetime(data.get("end_time"))
     
-    if exam.start_time and exam.end_time and exam.start_time >= exam.end_time:
+    if (
+        exam.start_time
+        and exam.end_time
+        and vietnam_local_naive(exam.start_time)
+        >= vietnam_local_naive(exam.end_time)
+    ):
         return _json_error("Thời gian kết thúc phải sau thời gian bắt đầu.")
 
     if "duration_minutes" in data:

@@ -9,7 +9,7 @@ from models import (
 )
 from decorators import role_required
 from judge import evaluate_submission # ⭐ Import module chấm điểm tự động
-from time_utils import vietnam_iso, vietnam_now_naive
+from time_utils import vietnam_iso, vietnam_local_naive, vietnam_now_naive
 import random
 import json
 import hashlib
@@ -375,9 +375,11 @@ def start_exam(eid):
     if not exam: return _json_error("Không tìm thấy bài kiểm tra.", 404)
 
     now = vietnam_now_naive()
-    if exam.start_time and now < exam.start_time:
+    start_time = vietnam_local_naive(exam.start_time) if exam.start_time else None
+    end_time = vietnam_local_naive(exam.end_time) if exam.end_time else None
+    if start_time and now < start_time:
         return _json_error("Chưa đến giờ làm bài.", 403)
-    if exam.end_time and now > exam.end_time:
+    if end_time and now > end_time:
         return _json_error("Đã hết thời gian làm bài.", 403)
 
     data = request.get_json(silent=True) or {}
@@ -392,8 +394,8 @@ def start_exam(eid):
     old = ExamSession.query.filter_by(user_id=user_id, exam_id=eid, is_finalized=False).first()
     if old:
         allowed_end_t = old.started_at + timedelta(minutes=exam.duration_minutes)
-        if exam.end_time:
-            allowed_end_t = min(allowed_end_t, exam.end_time)
+        if end_time:
+            allowed_end_t = min(allowed_end_t, end_time)
             
         if now < allowed_end_t:
             question_keys, message, status = _exam_session_question_keys(old)
@@ -442,12 +444,13 @@ def get_exam_session(sid):
     exam = session.exam
     now = vietnam_now_naive()
 
-    if exam.end_time and now > exam.end_time:
+    end_time = vietnam_local_naive(exam.end_time) if exam.end_time else None
+    if end_time and now > end_time:
         return _json_error("Đã hết thời gian làm bài.", 403)
         
     allowed_end_t = session.started_at + timedelta(minutes=exam.duration_minutes)
-    if exam.end_time:
-        allowed_end_t = min(allowed_end_t, exam.end_time)
+    if end_time:
+        allowed_end_t = min(allowed_end_t, end_time)
 
     remain_seconds = int((allowed_end_t - now).total_seconds())
     if remain_seconds <= 0:
@@ -499,7 +502,11 @@ def save_exam_draft(sid):
     session = ExamSession.query.filter_by(id=sid, user_id=user_id).first()
     if not session: return _json_error("Lỗi phiên làm bài.", 404)
     
-    if session.exam.end_time and vietnam_now_naive() > session.exam.end_time:
+    end_time = (
+        vietnam_local_naive(session.exam.end_time)
+        if session.exam.end_time else None
+    )
+    if end_time and vietnam_now_naive() > end_time:
         return _json_error("Đã hết giờ.", 403)
 
     data = request.get_json(silent=True) or {}
@@ -538,7 +545,11 @@ def submit_exam_code(sid):
     session = ExamSession.query.filter_by(id=sid, user_id=user_id).first()
     if not session: return _json_error("Lỗi phiên làm bài.", 404)
 
-    if session.exam.end_time and vietnam_now_naive() > session.exam.end_time:
+    end_time = (
+        vietnam_local_naive(session.exam.end_time)
+        if session.exam.end_time else None
+    )
+    if end_time and vietnam_now_naive() > end_time:
         return _json_error("Đã hết giờ, không thể nộp.", 403)
 
     data = request.get_json(silent=True) or {}
@@ -661,7 +672,7 @@ def _public_session_for_request(session_id):
 def _public_exam_deadline(session):
     deadline = session.started_at + timedelta(minutes=session.exam.duration_minutes)
     if session.exam.end_time:
-        deadline = min(deadline, session.exam.end_time)
+        deadline = min(deadline, vietnam_local_naive(session.exam.end_time))
     return deadline
 
 
@@ -703,7 +714,10 @@ def public_exam_info(access_code):
     return jsonify({
         "success": True, "name": exam.name,
         "start_time": vietnam_iso(exam.start_time),
-        "is_open": not exam.start_time or now >= exam.start_time,
+        "is_open": (
+            not exam.start_time
+            or now >= vietnam_local_naive(exam.start_time)
+        ),
         "password_configured": bool(exam.password_hash),
     }), 200
 
@@ -724,9 +738,11 @@ def start_public_exam(access_code):
         return _json_error("Thông tin sinh viên vượt quá độ dài cho phép.")
 
     now = _public_exam_now()
-    if exam.start_time and now < exam.start_time:
+    start_time = vietnam_local_naive(exam.start_time) if exam.start_time else None
+    end_time = vietnam_local_naive(exam.end_time) if exam.end_time else None
+    if start_time and now < start_time:
         return _json_error("Chưa đến giờ thi. Mật khẩu phòng thi chưa được kích hoạt.", 403)
-    if exam.end_time and now > exam.end_time:
+    if end_time and now > end_time:
         return _json_error("Bài thi đã đóng.", 403)
     if not exam.password_hash:
         return _json_error("Giáo viên chưa kích hoạt mật khẩu phòng thi.", 403)
