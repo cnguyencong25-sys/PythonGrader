@@ -33,16 +33,7 @@
       <label for="exConstraints">Giới hạn (Constraints) (VD: 1 &lt;= a, b &lt;= 100)</label>
       <textarea id="exConstraints" rows="2">{{ exercise.constraints if exercise else '' }}</textarea>
 
-      <div class="row-2">
-        <div>
-          <label for="exSampleInput">Input mẫu</label>
-          <textarea id="exSampleInput" rows="3">{{ exercise.sample_input if exercise else '' }}</textarea>
-        </div>
-        <div>
-          <label for="exSampleOutput">Output mẫu</label>
-          <textarea id="exSampleOutput" rows="3">{{ exercise.sample_output if exercise else '' }}</textarea>
-        </div>
-      </div>
+      {% include "_sample_cases_editor.html" %}
     </section>
 
     <!-- CỘT PHẢI: CẤU HÌNH CHẤM ĐIỂM -->
@@ -71,5 +62,6 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="/static/js/teacher_sample_cases.js"></script>
 <script src="/static/js/teacher_exercise_edit.js"></script>
 {% endblock %}

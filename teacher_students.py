@@ -79,13 +79,18 @@ def student_exam_history(student_user_id):
     for session in sessions:
         seen_by_exam[session.exam_id] = seen_by_exam.get(session.exam_id, 0) + 1
         attempt_number = attempt_counts[session.exam_id] - seen_by_exam[session.exam_id] + 1
-        submissions = sorted(
-            session.submissions,
-            key=lambda submission: (
-                submission.exercise.title if submission.exercise else "",
-                submission.id,
-            ),
-        )
+        submissions = [
+            {
+                "title": submission.exercise.title if submission.exercise else "Câu hỏi",
+                "status": submission.status,
+                "score": submission.score,
+                "max_score": submission.max_score,
+                "code": submission.code,
+                "updated_at": utc_iso(submission.updated_at),
+            }
+            for submission in [*session.submissions, *session.chapter_submissions]
+        ]
+        submissions.sort(key=lambda submission: submission["title"].casefold())
         finished_at = session.finished_at
         time_taken_seconds = vietnam_elapsed_seconds(session.started_at, finished_at)
 
@@ -104,19 +109,10 @@ def student_exam_history(student_user_id):
             "score": session.to_dict()["total_score"],
             "max_score": session.to_dict()["total_max"],
             "correct_count": sum(
-                1 for submission in submissions if submission.status == "correct"
+                1 for submission in submissions if submission["status"] == "correct"
             ),
             "question_count": len(submissions),
-            "submissions": [{
-                "title": submission.exercise.title if submission.exercise else "Câu hỏi",
-                "status": submission.status,
-                "score": submission.score,
-                "max_score": submission.max_score,
-                "code": submission.code,
-                "updated_at": (
-                    utc_iso(submission.updated_at)
-                ),
-            } for submission in submissions],
+            "submissions": submissions,
         })
 
     return jsonify({

@@ -39,10 +39,11 @@
       <div class="ws-problem-desc">
         <h4>Đề bài:</h4>
         <div id="problemDescription" class="desc-content"></div>
-        <div class="io-examples" id="ioExamples">
-          <div><h4>Input mẫu:</h4><pre id="problemSampleInput"></pre></div>
-          <div><h4>Output mẫu:</h4><pre id="problemSampleOutput"></pre></div>
+        <div class="io-examples problem-specifications">
+          <div><h4>Định dạng đầu ra:</h4><pre id="problemOutputFormat"></pre></div>
+          <div><h4>Ràng buộc dữ liệu:</h4><pre id="problemConstraints"></pre></div>
         </div>
+        <div class="sample-cases-display" id="problemSampleCases"></div>
       </div>
       
       <div class="ws-editor-area">
@@ -85,5 +86,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="/static/js/student_code_editor.js"></script>
+<script src="/static/js/student_sample_cases.js"></script>
 <script src="/static/js/student_exam_workspace.js"></script>
 {% endblock %}

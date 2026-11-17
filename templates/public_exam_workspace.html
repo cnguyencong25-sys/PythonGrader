@@ -41,16 +41,17 @@
         <article class="public-problem-card">
           <h2>Đề bài</h2>
           <div id="problemDescription" class="public-problem-description"></div>
-          <div class="public-example-grid">
+          <div class="public-example-grid problem-specifications">
             <section>
-              <h3>Input mẫu</h3>
-              <pre id="problemSampleInput"></pre>
+              <h3>Định dạng đầu ra</h3>
+              <pre id="problemOutputFormat"></pre>
             </section>
             <section>
-              <h3>Output mẫu</h3>
-              <pre id="problemSampleOutput"></pre>
+              <h3>Ràng buộc dữ liệu</h3>
+              <pre id="problemConstraints"></pre>
             </section>
           </div>
+          <div class="sample-cases-display public-sample-cases" id="problemSampleCases"></div>
         </article>
         <section class="public-editor-card" aria-label="Trình soạn thảo mã">
           <textarea id="codeEditor"></textarea>
@@ -63,6 +64,7 @@
       <p id="workspaceMessage" role="alert"></p>
     </main>
   </div>
+  <script src="/static/js/student_code_editor.js"></script>
   <script src="/static/js/public_exam_workspace.js"></script>
 </body>
 </html>

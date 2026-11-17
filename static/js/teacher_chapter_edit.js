@@ -30,12 +30,11 @@ infoForm.addEventListener("submit", async (e) => {
   showMsg(messageEl, "Đang lưu...", "");
 
   const name = document.getElementById("chapterName").value.trim();
-  const mode = document.querySelector('input[name="chapterMode"]:checked').value;
 
   try {
     const { ok, data } = await fetchJSON(`/api/chapters/${chapterId}`, {
       method: "PUT",
-      body: JSON.stringify({ name, mode }),
+      body: JSON.stringify({ name }),
     });
 
     if (!ok || !data.success) {
@@ -67,9 +66,7 @@ document.querySelectorAll(".btn-delete-small").forEach((btn) => {
       // Cập nhật số đếm
       const count = document.querySelectorAll(".exercise-item").length;
       const badge = document.getElementById("exerciseCountBadge");
-      const hint = document.getElementById("exerciseCount");
       if (badge) badge.textContent = count;
-      if (hint) hint.textContent = count;
       showMsg(messageEl, "Đã xoá bài tập.", "success");
     } else {
       showMsg(messageEl, data.message || "Không xoá được.");

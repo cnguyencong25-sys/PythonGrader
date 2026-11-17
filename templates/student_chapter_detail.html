@@ -12,14 +12,7 @@
 <div class="card-section student-chapter-detail-card">
   <div class="student-chapter-heading">
     <h2>{{ chapter.name }}</h2>
-    <p>
-      Chế độ: 
-      {% if chapter.mode == 'review' %}
-        <strong class="chapter-mode-review">🎯 Ôn tập chương (Random 5 câu)</strong>
-      {% else %}
-        <strong class="chapter-mode-practice">📖 Luyện tập toàn bộ ({{ chapter.exercises|length }} bài)</strong>
-      {% endif %}
-    </p>
+    <p><strong class="chapter-mode-practice">📖 Tất cả bài tập đã xuất bản trong chương</strong></p>
   </div>
 
   <!-- VÙNG NÚT BẤM -->

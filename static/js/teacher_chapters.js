@@ -60,9 +60,6 @@ async function loadChapters() {
 }
 
 function renderChapterCard(c) {
-  const modeLabel = c.mode === "review" ? "🎯 Ôn tập chương" : "📖 Luyện tập";
-  const modeClass = c.mode === "review" ? "mode-badge-review" : "mode-badge-practice";
-
   const previewHtml = c.exercises && c.exercises.length
     ? `<ul>${c.exercises.map((ex, i) =>
         `<li><span class="preview-index">${i + 1}.</span><span>${escapeHtml(ex.title)}</span></li>`
@@ -71,7 +68,7 @@ function renderChapterCard(c) {
 
   return `
     <div class="chapter-card" data-id="${c.id}">
-      <span class="chapter-mode-badge ${modeClass}">${modeLabel}</span>
+      <span class="chapter-mode-badge mode-badge-practice">📖 Chương luyện tập</span>
       <h3>${escapeHtml(c.name)}</h3>
       <p class="chapter-meta">📝 ${c.exercise_count} bài tập</p>
       <p class="chapter-meta">📅 Tạo ngày ${formatDate(c.created_at)}</p>

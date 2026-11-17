@@ -1457,6 +1457,76 @@ body {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.sample-cases-editor {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid #e4e9f2;
+  border-radius: 12px;
+  background: #f8f9fc;
+}
+
+.sample-cases-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.sample-cases-editor-header h3 {
+  margin: 0;
+  color: #263552;
+  font-size: 15px;
+}
+
+.sample-cases-editor-header p {
+  margin: 5px 0 0;
+  color: #748097;
+  font-size: 12px;
+}
+
+.sample-cases-list {
+  display: grid;
+  gap: 10px;
+}
+
+.sample-case-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e4e9f2;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.sample-case-field {
+  min-width: 0;
+}
+
+.sample-case-field label {
+  display: block;
+  margin-bottom: 6px;
+  color: #53617a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sample-case-field textarea {
+  width: 100%;
+  min-height: 78px;
+  resize: vertical;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 13px;
+}
+
+.sample-case-remove {
+  min-height: 38px;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+
 @media (max-width: 1120px) {
   .teacher-exercise-grid {
     grid-template-columns: minmax(0, 1fr);
@@ -1466,6 +1536,15 @@ body {
 @media (max-width: 900px) {
   .teacher-layout {
     display: block;
+  }
+
+  .sample-case-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sample-case-remove {
+    grid-column: 1 / -1;
+    justify-self: end;
   }
 
   .teacher-sidebar {

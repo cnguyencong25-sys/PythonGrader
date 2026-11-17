@@ -31,8 +31,8 @@ function escapeHtml(value) {
 }
 
 function setupEditor() {
-  editor = CodeMirror.fromTextArea(document.getElementById("codeEditor"), {
-    mode: "python", theme: "dracula", lineNumbers: true, autoCloseBrackets: true,
+  editor = createStudentCodeEditor(document.getElementById("codeEditor"), {
+    mode: "python", theme: "dracula", lineNumbers: false, autoCloseBrackets: true,
     indentUnit: 4, tabSize: 4,
   });
   editor.setSize("100%", "48vh");
@@ -72,13 +72,24 @@ function showQuestion(index) {
   const submission = submissions[question.id];
   document.getElementById("problemTitle").textContent = `${index + 1}. ${question.title}`;
   document.getElementById("problemDescription").textContent = question.description || "";
-  document.getElementById("problemSampleInput").textContent = question.sample_input || "(Không có)";
-  document.getElementById("problemSampleOutput").textContent = question.sample_output || "(Không có)";
+  document.getElementById("problemOutputFormat").textContent = question.output_format || "(Không có)";
+  document.getElementById("problemConstraints").textContent = question.constraints || "(Không có)";
+  renderStudentSampleCases(question);
   document.getElementById("problemBody").hidden = false;
   document.getElementById("submitResult").textContent = submission && submission.status !== "pending"
-    ? `${submission.status}: ${submission.score}/${submission.max_score}` : "";
+    ? gradingStatusLabel(submission.status) : "";
   editor.setValue(submission ? submission.code : "def solve():\n    pass\n");
   editor.setOption("readOnly", readOnly);
+}
+
+function gradingStatusLabel(status) {
+  const labels = {
+    correct: "✅ Đúng hoàn toàn!",
+    partial: "⚠️ Đúng một phần.",
+    wrong: "❌ Sai.",
+    pending: "",
+  };
+  return labels[status] || "Chưa có kết quả.";
 }
 
 function displayResult(result) {
@@ -98,7 +109,7 @@ async function submitQuestion() {
     return;
   }
   submissions[question.id] = data.result;
-  document.getElementById("submitResult").textContent = `${data.result.status}: ${data.result.score}/${data.result.max_score}`;
+  document.getElementById("submitResult").textContent = gradingStatusLabel(data.result.status);
   renderGrid();
 }
 

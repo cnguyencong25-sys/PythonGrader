@@ -3,7 +3,8 @@ from flask_jwt_extended import get_jwt_identity
 from extensions import db
 from models import (
     Chapter, Exercise, ChapterSession, ChapterSubmission, 
-    Exam, ExamExercise, ExamSession, ExamSubmission, ExamRetakePermission,
+    Exam, ExamExercise, ExamSession, ExamSubmission, ExamChapterSubmission,
+    ExamRetakePermission,
     ExamChapterRule, PublicExamSession, PublicExamSubmission
 )
 from decorators import role_required
@@ -74,9 +75,6 @@ def get_chapter_detail(cid):
     # ⭐ Chỉ lấy các bài được xuất bản
     exercises = [ex for ex in chapter.exercises if ex.is_published]
     
-    if chapter.mode == "review" and len(exercises) > 5:
-        exercises = random.sample(exercises, 5)
-    
     ex_list = [ex.to_dict() for ex in exercises]
 
     return jsonify({
@@ -84,7 +82,7 @@ def get_chapter_detail(cid):
         "chapter": {
             "id": chapter.id,
             "name": chapter.name,
-            "mode": chapter.mode,
+            "mode": "practice",
             "exercises": ex_list
         },
         "active_session_id": active_session.id if active_session else None,
@@ -119,15 +117,6 @@ def get_session_data(sid):
     chapter = session.chapter
     exercises = [ex for ex in chapter.exercises if ex.is_published]
     
-    if chapter.mode == "review" and len(exercises) > 5:
-        submitted_ids = [s.exercise_id for s in session.submissions]
-        other_exs = [ex for ex in exercises if ex.id not in submitted_ids]
-        if len(submitted_ids) < 5:
-            needed = 5 - len(submitted_ids)
-            exercises = [ex for ex in exercises if ex.id in submitted_ids] + random.sample(other_exs, min(needed, len(other_exs)))
-        else:
-            exercises = [ex for ex in exercises if ex.id in submitted_ids]
-
     ex_list = [ex.to_dict() for ex in exercises]
     subs = {s.exercise_id: s.to_dict() for s in session.submissions}
 
@@ -136,7 +125,7 @@ def get_session_data(sid):
         "chapter": {
             "id": chapter.id,
             "name": chapter.name,
-            "mode": chapter.mode,
+            "mode": "practice",
             "exercises": ex_list
         },
         "submissions": subs
@@ -218,6 +207,113 @@ def finish_session(sid):
 # PHẦN 2: BÀI KIỂM TRA
 # ============================================================
 
+def _select_exam_question_keys(exam):
+    rules = ExamChapterRule.query.filter_by(exam_id=exam.id).all()
+    if rules:
+        question_keys = []
+        for rule in rules:
+            available = Exercise.query.filter_by(
+                chapter_id=rule.chapter_id, is_published=True
+            ).all()
+            if rule.question_count > len(available):
+                return None, "Ngân hàng câu hỏi đã thay đổi; giáo viên cần cập nhật số câu theo chương.", 409
+            question_keys.extend(
+                f"chapter-{exercise.id}"
+                for exercise in random.sample(available, rule.question_count)
+            )
+    else:
+        question_keys = [
+            f"exam-{exercise.id}"
+            for exercise in exam.exercises
+            if exercise.is_published
+        ]
+    if not question_keys:
+        return None, "Bài thi chưa có câu hỏi được xuất bản.", 400
+    return question_keys, None, None
+
+
+def _exam_session_question_keys(session):
+    try:
+        question_keys = json.loads(session.question_ids or "[]")
+    except (TypeError, ValueError):
+        question_keys = []
+    if (
+        isinstance(question_keys, list)
+        and question_keys
+        and all(
+            isinstance(key, str)
+            and key.startswith(("exam-", "chapter-"))
+            and key.split("-", 1)[1].isdecimal()
+            for key in question_keys
+        )
+    ):
+        return question_keys, None, None
+    question_keys, message, status = _select_exam_question_keys(session.exam)
+    if message:
+        return None, message, status
+    session.question_ids = json.dumps(question_keys)
+    return question_keys, None, None
+
+
+def _resolve_exam_question(question_key, exam):
+    if not isinstance(question_key, str) or "-" not in question_key:
+        return None, None
+    kind, raw_id = question_key.split("-", 1)
+    try:
+        exercise_id = int(raw_id)
+    except ValueError:
+        return None, None
+    if kind == "exam":
+        exercise = ExamExercise.query.filter_by(
+            id=exercise_id, exam_id=exam.id, is_published=True
+        ).first()
+        return exercise, False
+    if kind == "chapter":
+        exercise = (
+            Exercise.query.join(Chapter, Exercise.chapter_id == Chapter.id)
+            .filter(
+                Exercise.id == exercise_id,
+                Exercise.is_published.is_(True),
+                Chapter.teacher_id == exam.teacher_id,
+            )
+            .first()
+        )
+        return exercise, True
+    return None, None
+
+
+def _exam_question_key_from_request(submitted_id, question_keys):
+    if isinstance(submitted_id, bool):
+        return None
+    if isinstance(submitted_id, int):
+        question_key = f"exam-{submitted_id}"
+    elif isinstance(submitted_id, str):
+        question_key = submitted_id
+        if question_key.isdecimal():
+            question_key = f"exam-{question_key}"
+    else:
+        return None
+    return question_key if question_key in question_keys else None
+
+
+def _student_exam_question_data(question_key, exam):
+    exercise, _ = _resolve_exam_question(question_key, exam)
+    if not exercise:
+        return None
+    examples = exercise.sample_examples
+    return {
+        "id": question_key,
+        "title": exercise.title,
+        "description": exercise.description,
+        "input_format": exercise.input_format,
+        "output_format": exercise.output_format,
+        "constraints": exercise.constraints,
+        "sample_input": examples[0]["input"] if examples else "",
+        "sample_output": examples[0]["output"] if examples else "",
+        "sample_examples": examples,
+    }
+
+
 @student_api_bp.route("/exams", methods=["GET"])
 @role_required("student")
 def get_exams():
@@ -244,6 +340,7 @@ def get_exams():
     result = []
     for e in exams:
         attempts_used = finalized_counts.get(e.id, 0)
+        configured_question_count = sum(rule.question_count for rule in e.chapter_rules)
         can_start = (
             e.id in active_exam_ids
             or attempts_used < e.max_attempts
@@ -256,7 +353,9 @@ def get_exams():
             "max_attempts": e.max_attempts,
             "start_time": vietnam_iso(e.start_time),
             "end_time": vietnam_iso(e.end_time),
-            "exercise_count": len([ex for ex in e.exercises if ex.is_published]),
+            "exercise_count": configured_question_count or len(
+                [ex for ex in e.exercises if ex.is_published]
+            ),
             "best_score": scores.get(e.id, None),
             "attempts_used": attempts_used,
             "has_active_session": e.id in active_exam_ids,
@@ -297,6 +396,11 @@ def start_exam(eid):
             allowed_end_t = min(allowed_end_t, exam.end_time)
             
         if now < allowed_end_t:
+            question_keys, message, status = _exam_session_question_keys(old)
+            if message:
+                return _json_error(message, status)
+            old.question_ids = json.dumps(question_keys)
+            db.session.commit()
             return jsonify({"success": True, "session_id": old.id, "is_resumed": True}), 200
         else:
             old.is_finalized = True
@@ -312,7 +416,15 @@ def start_exam(eid):
     if finalized_count >= exam.max_attempts and not retake_permission:
         return _json_error("Bạn đã hết lượt làm bài kiểm tra này.", 403)
 
-    new_sess = ExamSession(user_id=user_id, exam_id=eid, started_at=now)
+    question_keys, message, status = _select_exam_question_keys(exam)
+    if message:
+        return _json_error(message, status)
+    new_sess = ExamSession(
+        user_id=user_id,
+        exam_id=eid,
+        started_at=now,
+        question_ids=json.dumps(question_keys),
+    )
     db.session.add(new_sess)
     if retake_permission:
         retake_permission.used_at = utc_now_naive()
@@ -341,8 +453,32 @@ def get_exam_session(sid):
     if remain_seconds <= 0:
         return _json_error("Đã hết thời gian làm bài.", 403)
 
-    ex_list = [ex.to_dict() for ex in exam.exercises if ex.is_published]
-    subs = {s.exercise_id: s.to_dict() for s in session.submissions}
+    question_keys, message, status = _exam_session_question_keys(session)
+    if message:
+        return _json_error(message, status)
+    db.session.commit()
+    ex_list = [
+        question
+        for question in (
+            _student_exam_question_data(key, session.exam) for key in question_keys
+        )
+        if question
+    ]
+    subs = {}
+    for key in question_keys:
+        exercise, is_chapter_question = _resolve_exam_question(key, session.exam)
+        if not exercise:
+            continue
+        if is_chapter_question:
+            submission = ExamChapterSubmission.query.filter_by(
+                session_id=session.id, exercise_id=exercise.id
+            ).first()
+        else:
+            submission = ExamSubmission.query.filter_by(
+                session_id=session.id, exercise_id=exercise.id
+            ).first()
+        if submission:
+            subs[key] = submission.to_dict()
 
     return jsonify({
         "success": True,
@@ -367,11 +503,28 @@ def save_exam_draft(sid):
         return _json_error("Đã hết giờ.", 403)
 
     data = request.get_json(silent=True) or {}
-    ex_id, code = data.get("exercise_id"), data.get("code", "")
-    
-    sub = ExamSubmission.query.filter_by(session_id=sid, exercise_id=ex_id).first()
+    question_keys, message, status = _exam_session_question_keys(session)
+    if message:
+        return _json_error(message, status)
+    question_key = _exam_question_key_from_request(data.get("exercise_id"), question_keys)
+    code = data.get("code", "")
+    if not question_key or not isinstance(code, str):
+        return _json_error("Câu hỏi hoặc mã nguồn không hợp lệ.")
+    exercise, is_chapter_question = _resolve_exam_question(question_key, session.exam)
+    if not exercise:
+        return _json_error("Không tìm thấy câu hỏi.", 404)
+
+    if is_chapter_question:
+        sub = ExamChapterSubmission.query.filter_by(
+            session_id=sid, exercise_id=exercise.id
+        ).first()
+    else:
+        sub = ExamSubmission.query.filter_by(
+            session_id=sid, exercise_id=exercise.id
+        ).first()
     if not sub:
-        sub = ExamSubmission(session_id=sid, exercise_id=ex_id)
+        submission_model = ExamChapterSubmission if is_chapter_question else ExamSubmission
+        sub = submission_model(session_id=sid, exercise_id=exercise.id)
         db.session.add(sub)
     sub.code = code
     db.session.commit()
@@ -389,11 +542,16 @@ def submit_exam_code(sid):
         return _json_error("Đã hết giờ, không thể nộp.", 403)
 
     data = request.get_json(silent=True) or {}
-    exercise_id = data.get("exercise_id")
+    question_keys, message, status = _exam_session_question_keys(session)
+    if message:
+        return _json_error(message, status)
+    question_key = _exam_question_key_from_request(data.get("exercise_id"), question_keys)
     code = data.get("code", "")
-
-    exercise = ExamExercise.query.get(exercise_id)
-    if not exercise: return _json_error("Không tìm thấy bài tập.", 404)
+    if not question_key or not isinstance(code, str):
+        return _json_error("Câu hỏi hoặc mã nguồn không hợp lệ.")
+    exercise, is_chapter_question = _resolve_exam_question(question_key, session.exam)
+    if not exercise:
+        return _json_error("Không tìm thấy bài tập.", 404)
 
     # ⭐ GỌI MODULE CHẤM ĐIỂM TỰ ĐỘNG
     result = evaluate_submission(
@@ -403,9 +561,17 @@ def submit_exam_code(sid):
         num_tests=exercise.num_test_cases
     )
 
-    sub = ExamSubmission.query.filter_by(session_id=sid, exercise_id=exercise_id).first()
+    if is_chapter_question:
+        sub = ExamChapterSubmission.query.filter_by(
+            session_id=sid, exercise_id=exercise.id
+        ).first()
+    else:
+        sub = ExamSubmission.query.filter_by(
+            session_id=sid, exercise_id=exercise.id
+        ).first()
     if not sub:
-        sub = ExamSubmission(session_id=sid, exercise_id=exercise_id)
+        submission_model = ExamChapterSubmission if is_chapter_question else ExamSubmission
+        sub = submission_model(session_id=sid, exercise_id=exercise.id)
         db.session.add(sub)
     sub.code = code
     sub.status = result["status"]
@@ -468,11 +634,14 @@ def _public_question_data(question_key):
     question = _public_question(question_key)
     if not question:
         return None
+    examples = question.sample_examples
     return {
         "id": question_key, "title": question.title, "description": question.description,
         "input_format": question.input_format, "output_format": question.output_format,
-        "constraints": question.constraints, "sample_input": question.sample_input,
-        "sample_output": question.sample_output,
+        "constraints": question.constraints,
+        "sample_input": examples[0]["input"] if examples else "",
+        "sample_output": examples[0]["output"] if examples else "",
+        "sample_examples": examples,
     }
 
 

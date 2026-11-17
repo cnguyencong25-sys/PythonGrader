@@ -20,29 +20,8 @@
     <input type="text" id="chapterName" value="{{ chapter.name }}"
            required minlength="3" maxlength="200">
 
-    <label>Chế độ chương *</label>
-    <div class="mode-options">
-      <label class="mode-card">
-        <input type="radio" name="chapterMode" value="practice"
-               {% if chapter.mode == 'practice' %}checked{% endif %}>
-        <div class="mode-content">
-          <strong>📖 Luyện tập</strong>
-          <small>SV thấy toàn bộ bài trong chương</small>
-        </div>
-      </label>
-      <label class="mode-card">
-        <input type="radio" name="chapterMode" value="review"
-               {% if chapter.mode == 'review' %}checked{% endif %}>
-        <div class="mode-content">
-          <strong>🎯 Ôn tập chương</strong>
-          <small>Random 5 bài mỗi lần (cần &gt; 5 bài)</small>
-        </div>
-      </label>
-    </div>
-
     <p class="hint-left">
-      Chế độ <strong>Ôn tập</strong> yêu cầu chương phải có <strong>trên 5 bài tập</strong>.
-      Hiện có: <strong id="exerciseCount">{{ chapter.exercises|length }}</strong> bài.
+      Sinh viên sẽ thấy tất cả bài tập đã xuất bản trong chương.
     </p>
 
     <div class="form-actions">

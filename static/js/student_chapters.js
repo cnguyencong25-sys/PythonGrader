@@ -31,13 +31,11 @@ async function loadChapters() {
     }
 
     chapterList.innerHTML = chapters.map(c => {
-      const modeLabel = c.mode === "review" ? "🎯 Ôn tập chương" : "📖 Luyện tập";
-      const modeClass = c.mode === "review" ? "mode-badge-review" : "mode-badge-practice";
       const isDone = c.total_exercises > 0 && c.completed_exercises === c.total_exercises;
 
       return `
         <div class="chapter-card" onclick="window.location.href='/student/chapters/${c.id}'">
-          <span class="chapter-mode-badge ${modeClass}">${modeLabel}</span>
+          <span class="chapter-mode-badge mode-badge-practice">📖 Chương luyện tập</span>
           <h3>${c.name}</h3>
           <p class="chapter-meta">👨‍🏫 GV: ${c.teacher_name}</p>
           <p class="chapter-meta">📝 Tiến độ: <strong>${c.completed_exercises} / ${c.total_exercises}</strong> bài đúng</p>

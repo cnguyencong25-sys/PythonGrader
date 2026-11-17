@@ -474,6 +474,9 @@ def _seed_teacher():
 
 def _upgrade_existing_schema():
     columns = {column["name"] for column in inspect(db.engine).get_columns("exams")}
+    session_columns = {
+        column["name"] for column in inspect(db.engine).get_columns("exam_sessions")
+    }
     additions = {
         "max_attempts": "INTEGER NOT NULL DEFAULT 1",
         "password_hash": "VARCHAR(255)",
@@ -483,6 +486,10 @@ def _upgrade_existing_schema():
         for column, definition in additions.items():
             if column not in columns:
                 connection.execute(text(f"ALTER TABLE exams ADD COLUMN {column} {definition}"))
+        if "question_ids" not in session_columns:
+            connection.execute(text(
+                "ALTER TABLE exam_sessions ADD COLUMN question_ids TEXT NOT NULL DEFAULT '[]'"
+            ))
         result = connection.execute(text("SELECT id FROM exams WHERE access_code IS NULL OR access_code = ''"))
         for row in result:
             connection.execute(

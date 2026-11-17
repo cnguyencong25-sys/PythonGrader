@@ -1,0 +1,38 @@
+<section class="sample-cases-editor">
+  <header class="sample-cases-editor-header">
+    <div>
+      <h3>Input / Output mẫu</h3>
+      <p>Thêm các cặp ví dụ; học sinh sẽ thấy tất cả mẫu này trong đề bài.</p>
+    </div>
+    <button type="button" class="btn-secondary" id="addSampleCase">＋ Thêm cặp mẫu</button>
+  </header>
+  <div class="sample-cases-list" id="sampleCaseList">
+    {% if exercise and exercise.sample_examples %}
+      {% for sample in exercise.sample_examples %}
+      <div class="sample-case-row">
+        <div class="sample-case-field">
+          <label for="sampleInput-{{ loop.index }}">Input mẫu {{ loop.index }}</label>
+          <textarea id="sampleInput-{{ loop.index }}" class="sample-case-input" rows="3">{{ sample.input }}</textarea>
+        </div>
+        <div class="sample-case-field">
+          <label for="sampleOutput-{{ loop.index }}">Output mẫu {{ loop.index }}</label>
+          <textarea id="sampleOutput-{{ loop.index }}" class="sample-case-output" rows="3">{{ sample.output }}</textarea>
+        </div>
+        <button type="button" class="btn-secondary sample-case-remove" aria-label="Xóa cặp mẫu {{ loop.index }}">Xóa</button>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="sample-case-row">
+        <div class="sample-case-field">
+          <label for="sampleInput-1">Input mẫu 1</label>
+          <textarea id="sampleInput-1" class="sample-case-input" rows="3"></textarea>
+        </div>
+        <div class="sample-case-field">
+          <label for="sampleOutput-1">Output mẫu 1</label>
+          <textarea id="sampleOutput-1" class="sample-case-output" rows="3"></textarea>
+        </div>
+        <button type="button" class="btn-secondary sample-case-remove" aria-label="Xóa cặp mẫu 1">Xóa</button>
+      </div>
+    {% endif %}
+  </div>
+</section>

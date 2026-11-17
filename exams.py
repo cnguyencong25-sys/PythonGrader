@@ -10,6 +10,7 @@ import statistics
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 from time_utils import vietnam_elapsed_seconds, vietnam_iso, vietnam_now_naive
+from sample_cases import sample_fields_from_payload
 
 exams_bp = Blueprint("exams", __name__, url_prefix="/api/exams")
 
@@ -168,6 +169,10 @@ def create_exam_exercise(eid):
     data = request.get_json(silent=True) or {}
     title = (data.get("title") or "").strip()
     if len(title) < 3: return _json_error("Tên bài tập phải có ít nhất 3 ký tự.")
+    try:
+        sample_input, sample_output = sample_fields_from_payload(data)
+    except ValueError as error:
+        return _json_error(str(error))
 
     ex = ExamExercise(
         exam_id=exam.id, 
@@ -176,8 +181,8 @@ def create_exam_exercise(eid):
         input_format=data.get("input_format", ""),
         output_format=data.get("output_format", ""),
         constraints=data.get("constraints", ""),
-        sample_input=data.get("sample_input", ""),
-        sample_output=data.get("sample_output", ""),
+        sample_input=sample_input,
+        sample_output=sample_output,
         generator_code=data.get("generator_code", ""),
         solution_code=data.get("solution_code", ""),
         num_test_cases=int(data.get("num_test_cases", 10)),
@@ -207,13 +212,19 @@ def update_exam_exercise(eid):
     if not ex or ex.exam.teacher_id != int(get_jwt_identity()): return _json_error("Không có quyền.", 403)
 
     data = request.get_json(silent=True) or {}
+    if "sample_examples" in data:
+        try:
+            ex.sample_input, ex.sample_output = sample_fields_from_payload(data)
+        except ValueError as error:
+            return _json_error(str(error))
     if "title" in data: ex.title = data.get("title", "").strip()
     if "description" in data: ex.description = data.get("description", "").strip()
     if "input_format" in data: ex.input_format = data.get("input_format", "")
     if "output_format" in data: ex.output_format = data.get("output_format", "")
     if "constraints" in data: ex.constraints = data.get("constraints", "")
-    if "sample_input" in data: ex.sample_input = data.get("sample_input", "")
-    if "sample_output" in data: ex.sample_output = data.get("sample_output", "")
+    if "sample_examples" not in data:
+        if "sample_input" in data: ex.sample_input = data.get("sample_input", "")
+        if "sample_output" in data: ex.sample_output = data.get("sample_output", "")
     if "generator_code" in data: ex.generator_code = data.get("generator_code", "")
     if "solution_code" in data: ex.solution_code = data.get("solution_code", "")
     if "num_test_cases" in data: ex.num_test_cases = int(data.get("num_test_cases", 10))

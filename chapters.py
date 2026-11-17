@@ -3,9 +3,9 @@ from flask_jwt_extended import get_jwt_identity
 from extensions import db
 from models import Chapter, Exercise
 from decorators import role_required
+from sample_cases import sample_fields_from_payload
 
 chapters_bp = Blueprint("chapters", __name__, url_prefix="/api/chapters")
-MIN_REVIEW_EXERCISES = 5
 
 def _json_error(msg, code=400):
     return jsonify({"success": False, "message": msg}), code
@@ -63,14 +63,7 @@ def update_chapter(cid):
         if len(name) < 3: return _json_error("Tên chương phải từ 3 ký tự.")
         c.name = name
 
-    if "mode" in data:
-        mode = (data.get("mode") or "").strip()
-        if mode not in ("practice", "review"): return _json_error("Chế độ không hợp lệ.")
-        # Chỉ đếm các bài đang xuất bản
-        published_count = len([ex for ex in c.exercises if ex.is_published])
-        if mode == "review" and published_count <= MIN_REVIEW_EXERCISES:
-            return _json_error(f"Chế độ 'Ôn tập' yêu cầu xuất bản trên {MIN_REVIEW_EXERCISES} bài tập. Hiện có {published_count} bài.", 400)
-        c.mode = mode
+    c.mode = "practice"
 
     db.session.commit()
     return jsonify({"success": True, "message": "Đã cập nhật chương.", "chapter": c.to_dict(include_exercises=True, exercises_brief=True)}), 200
@@ -99,6 +92,10 @@ def create_exercise(cid):
     data = request.get_json(silent=True) or {}
     title = (data.get("title") or "").strip()
     if len(title) < 3: return _json_error("Tên bài tập phải từ 3 ký tự.")
+    try:
+        sample_input, sample_output = sample_fields_from_payload(data)
+    except ValueError as error:
+        return _json_error(str(error))
     
     ex = Exercise(
         chapter_id=c.id, 
@@ -107,8 +104,8 @@ def create_exercise(cid):
         input_format=data.get("input_format", ""),
         output_format=data.get("output_format", ""),
         constraints=data.get("constraints", ""),
-        sample_input=data.get("sample_input", ""),
-        sample_output=data.get("sample_output", ""),
+        sample_input=sample_input,
+        sample_output=sample_output,
         generator_code=data.get("generator_code", ""),
         solution_code=data.get("solution_code", ""),
         num_test_cases=int(data.get("num_test_cases", 10)),
@@ -128,13 +125,19 @@ def update_exercise(eid):
     if not ex or ex.chapter.teacher_id != int(get_jwt_identity()): return _json_error("Không có quyền.", 403)
 
     data = request.get_json(silent=True) or {}
+    if "sample_examples" in data:
+        try:
+            ex.sample_input, ex.sample_output = sample_fields_from_payload(data)
+        except ValueError as error:
+            return _json_error(str(error))
     if "title" in data: ex.title = data.get("title", "").strip()
     if "description" in data: ex.description = data.get("description", "").strip()
     if "input_format" in data: ex.input_format = data.get("input_format", "")
     if "output_format" in data: ex.output_format = data.get("output_format", "")
     if "constraints" in data: ex.constraints = data.get("constraints", "")
-    if "sample_input" in data: ex.sample_input = data.get("sample_input", "")
-    if "sample_output" in data: ex.sample_output = data.get("sample_output", "")
+    if "sample_examples" not in data:
+        if "sample_input" in data: ex.sample_input = data.get("sample_input", "")
+        if "sample_output" in data: ex.sample_output = data.get("sample_output", "")
     if "generator_code" in data: ex.generator_code = data.get("generator_code", "")
     if "solution_code" in data: ex.solution_code = data.get("solution_code", "")
     if "num_test_cases" in data: ex.num_test_cases = int(data.get("num_test_cases", 10))

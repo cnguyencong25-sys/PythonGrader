@@ -18,10 +18,10 @@ let autoSaveTimeout = null;
 
 // Khởi tạo CodeMirror
 function initEditor() {
-  editor = CodeMirror.fromTextArea(document.getElementById("codeEditor"), {
+  editor = createStudentCodeEditor(document.getElementById("codeEditor"), {
     mode: "python",
     theme: "dracula",
-    lineNumbers: true,
+    lineNumbers: false,
     autoCloseBrackets: true,
     indentUnit: 4,
     tabSize: 4,
@@ -95,8 +95,9 @@ function selectExercise(index) {
   document.getElementById("problemBody").style.display = "flex";
   document.getElementById("problemTitle").textContent = `Bài ${index + 1}: ${ex.title}`;
   document.getElementById("problemDescription").textContent = ex.description;
-  document.getElementById("problemSampleInput").textContent = ex.sample_input || "(Không có)";
-  document.getElementById("problemSampleOutput").textContent = ex.sample_output || "(Không có)";
+  document.getElementById("problemOutputFormat").textContent = ex.output_format || "(Không có)";
+  document.getElementById("problemConstraints").textContent = ex.constraints || "(Không có)";
+  renderStudentSampleCases(ex);
 
   // Load code cũ (từ lúc lưu nháp hoặc nộp bài)
   if (submissionsData[ex.id] && submissionsData[ex.id].code) {
@@ -115,13 +116,13 @@ function selectExercise(index) {
 function updateSubmitResultUI(result) {
   const resEl = document.getElementById("submitResult");
   if (result.status === "correct") {
-    resEl.textContent = `✅ Đúng hoàn toàn! (${result.score}/${result.max_score} điểm)`;
+    resEl.textContent = "✅ Đúng hoàn toàn!";
     resEl.className = "submit-result correct";
   } else if (result.status === "partial") {
-    resEl.textContent = `⚠️ Đúng một phần. (${result.score}/${result.max_score} điểm)`;
+    resEl.textContent = "⚠️ Đúng một phần.";
     resEl.className = "submit-result partial";
   } else {
-    resEl.textContent = `❌ Sai. (${result.score}/${result.max_score} điểm)`;
+    resEl.textContent = "❌ Sai.";
     resEl.className = "submit-result wrong";
   }
 }

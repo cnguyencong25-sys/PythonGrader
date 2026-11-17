@@ -1,6 +1,7 @@
 import secrets
 import hashlib
 from extensions import db, bcrypt
+from sample_cases import sample_examples_from_values
 from time_utils import (
     VIETNAM_TZ,
     utc_iso,
@@ -125,11 +126,18 @@ class Exercise(db.Model):
     is_published = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, default=utc_now_naive)
 
+    @property
+    def sample_examples(self):
+        return sample_examples_from_values(self.sample_input, self.sample_output)
+
     def to_dict(self):
+        examples = self.sample_examples
         return {
             "id": self.id, "chapter_id": self.chapter_id, "title": self.title, "description": self.description,
             "input_format": self.input_format, "output_format": self.output_format, "constraints": self.constraints,
-            "sample_input": self.sample_input, "sample_output": self.sample_output,
+            "sample_input": examples[0]["input"] if examples else "",
+            "sample_output": examples[0]["output"] if examples else "",
+            "sample_examples": examples,
             "generator_code": self.generator_code, "solution_code": self.solution_code,
             "num_test_cases": self.num_test_cases, "is_published": self.is_published,
         }
@@ -260,11 +268,18 @@ class ExamExercise(db.Model):
     is_published = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, default=utc_now_naive)
 
+    @property
+    def sample_examples(self):
+        return sample_examples_from_values(self.sample_input, self.sample_output)
+
     def to_dict(self):
+        examples = self.sample_examples
         return {
             "id": self.id, "exam_id": self.exam_id, "title": self.title, "description": self.description,
             "input_format": self.input_format, "output_format": self.output_format, "constraints": self.constraints,
-            "sample_input": self.sample_input, "sample_output": self.sample_output,
+            "sample_input": examples[0]["input"] if examples else "",
+            "sample_output": examples[0]["output"] if examples else "",
+            "sample_examples": examples,
             "generator_code": self.generator_code, "solution_code": self.solution_code,
             "num_test_cases": self.num_test_cases, "is_published": self.is_published,
         }
@@ -319,6 +334,7 @@ class ExamSession(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     exam_id = db.Column(db.Integer, db.ForeignKey("exams.id"), nullable=False, index=True)
+    question_ids = db.Column(db.Text, nullable=False, default="[]")
     started_at = db.Column(db.DateTime, default=vietnam_now_naive)
     finished_at = db.Column(db.DateTime, nullable=True)
     is_finalized = db.Column(db.Boolean, default=False)
@@ -326,10 +342,14 @@ class ExamSession(db.Model):
     user = db.relationship("User", foreign_keys=[user_id])
     exam = db.relationship("Exam", foreign_keys=[exam_id])
     submissions = db.relationship("ExamSubmission", backref="session", cascade="all, delete-orphan")
+    chapter_submissions = db.relationship(
+        "ExamChapterSubmission", backref="session", cascade="all, delete-orphan"
+    )
 
     def to_dict(self):
-        total_score = sum(s.score for s in self.submissions)
-        total_max = sum(s.max_score for s in self.submissions) if self.submissions else 0
+        submissions = [*self.submissions, *self.chapter_submissions]
+        total_score = sum(s.score for s in submissions)
+        total_max = sum(s.max_score for s in submissions) if submissions else 0
         return {
             "id": self.id, "started_at": vietnam_iso(self.started_at),
             "finished_at": vietnam_iso(self.finished_at),
@@ -367,4 +387,32 @@ class ExamSubmission(db.Model):
         return {
             "id": self.id, "session_id": self.session_id, "exercise_id": self.exercise_id,
             "code": self.code, "status": self.status, "score": self.score, "max_score": self.max_score,
+        }
+
+
+class ExamChapterSubmission(db.Model):
+    __tablename__ = "exam_chapter_submissions"
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.Integer, db.ForeignKey("exam_sessions.id"), nullable=False, index=True)
+    exercise_id = db.Column(db.Integer, db.ForeignKey("exercises.id"), nullable=False, index=True)
+    code = db.Column(db.Text, nullable=False, default="")
+    status = db.Column(db.String(20), nullable=False, default="pending")
+    score = db.Column(db.Float, nullable=False, default=0.0)
+    max_score = db.Column(db.Float, nullable=False, default=10.0)
+    updated_at = db.Column(db.DateTime, default=utc_now_naive, onupdate=utc_now_naive)
+    exercise = db.relationship("Exercise", foreign_keys=[exercise_id])
+
+    __table_args__ = (
+        db.UniqueConstraint("session_id", "exercise_id", name="uq_exam_chapter_submission"),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "session_id": self.session_id,
+            "exercise_id": f"chapter-{self.exercise_id}",
+            "code": self.code,
+            "status": self.status,
+            "score": self.score,
+            "max_score": self.max_score,
         }
