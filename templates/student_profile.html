@@ -1,0 +1,104 @@
+{% extends "student_base.html" %}
+{% block title %}Thông tin sinh viên — Python Grader{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <div>
+    <h1>👤 Thông tin cá nhân</h1>
+    <p class="subtitle">Cập nhật hồ sơ và bảo vệ tài khoản của bạn</p>
+  </div>
+</header>
+
+<div class="student-profile-grid">
+  <section class="card-section student-profile-card">
+    <div class="student-profile-card-heading">
+      <span class="student-profile-section-icon" aria-hidden="true">✎</span>
+      <div>
+        <h2>Thông tin cá nhân</h2>
+        <p>Họ tên, mã sinh viên và lớp được dùng trong hồ sơ học tập.</p>
+      </div>
+    </div>
+
+    <form id="studentProfileForm" class="student-profile-form">
+      <div class="student-profile-fields">
+        <div class="student-profile-field">
+          <label for="profileFullName">Họ và tên</label>
+          <input id="profileFullName" name="full_name" type="text"
+                 value="{{ user.full_name or '' }}" required minlength="2" maxlength="100"
+                 autocomplete="name">
+        </div>
+        <div class="student-profile-field">
+          <label for="profileStudentId">Mã sinh viên</label>
+          <input id="profileStudentId" name="student_id" type="text"
+                 value="{{ user.student_id or '' }}" required maxlength="50"
+                 pattern="[A-Za-z0-9_-]+" autocomplete="off">
+          <small>Chỉ gồm chữ, số, dấu gạch ngang hoặc gạch dưới.</small>
+        </div>
+        <div class="student-profile-field">
+          <label for="profileClassName">Lớp</label>
+          <input id="profileClassName" name="class_name" type="text"
+                 value="{{ user.class_name or '' }}" required maxlength="50"
+                 autocomplete="organization">
+        </div>
+        <div class="student-profile-field">
+          <label for="profileEmail">Email</label>
+          <input id="profileEmail" type="email" value="{{ user.email }}" readonly
+                 aria-describedby="profileEmailHint" autocomplete="email">
+          <small id="profileEmailHint">Email đăng nhập không thể chỉnh sửa.</small>
+        </div>
+      </div>
+
+      <div class="student-profile-password-preview">
+        <span class="student-profile-password-dots" aria-hidden="true">••••••••••</span>
+        <span><strong>Mật khẩu</strong><small>Giá trị hiện tại được bảo vệ, không hiển thị trên trang.</small></span>
+        <span class="student-profile-secure-badge">Được bảo vệ</span>
+      </div>
+
+      <p id="profileMessage" class="message" role="status" aria-live="polite"></p>
+      <div class="student-profile-form-actions">
+        <button id="saveProfileButton" type="submit" class="btn-primary">Lưu thông tin</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card-section student-profile-card">
+    <div class="student-profile-card-heading">
+      <span class="student-profile-section-icon student-profile-security-icon" aria-hidden="true">⌑</span>
+      <div>
+        <h2>Đổi mật khẩu</h2>
+        <p>Xác nhận mật khẩu hiện tại trước khi thiết lập mật khẩu mới.</p>
+      </div>
+    </div>
+
+    <form id="changePasswordForm" class="student-profile-form">
+      <div class="student-profile-fields student-password-fields">
+        <div class="student-profile-field">
+          <label for="currentPassword">Mật khẩu hiện tại</label>
+          <input id="currentPassword" name="current_password" type="password"
+                 required autocomplete="current-password">
+        </div>
+        <div class="student-profile-field">
+          <label for="newPassword">Mật khẩu mới</label>
+          <input id="newPassword" name="new_password" type="password"
+                 required minlength="8" maxlength="72" autocomplete="new-password">
+          <small>Mật khẩu mới cần ít nhất 8 ký tự.</small>
+        </div>
+        <div class="student-profile-field">
+          <label for="confirmPassword">Xác nhận mật khẩu mới</label>
+          <input id="confirmPassword" name="confirm_password" type="password"
+                 required minlength="8" maxlength="72" autocomplete="new-password">
+        </div>
+      </div>
+
+      <p id="passwordMessage" class="message" role="status" aria-live="polite"></p>
+      <div class="student-profile-form-actions">
+        <button id="savePasswordButton" type="submit" class="btn-primary">Lưu mật khẩu</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/student_profile.js"></script>
+{% endblock %}

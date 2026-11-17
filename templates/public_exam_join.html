@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vào thi — {{ exam.name }}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="public-exam-join-body">
+  <main class="public-exam-join-card">
+    <div class="public-exam-brand"><span>PG</span><strong>Python Grader</strong></div>
+    <div class="public-exam-intro">
+      <span class="exam-eyebrow">PHÒNG THI TRỰC TUYẾN</span>
+      <h1>{{ exam.name }}</h1>
+      <p>Nhập chính xác thông tin sinh viên và mật khẩu do giảng viên cung cấp.</p>
+    </div>
+    <div id="examAvailability" class="public-exam-notice" role="status">Đang kiểm tra lịch thi...</div>
+    <form id="joinExamForm" class="public-exam-join-form" data-access-code="{{ exam.access_code }}">
+      <label for="fullName">Họ và tên</label>
+      <input id="fullName" name="full_name" required maxlength="120" autocomplete="name">
+      <label for="studentId">Mã sinh viên</label>
+      <input id="studentId" name="student_id" required maxlength="50">
+      <label for="className">Lớp</label>
+      <input id="className" name="class_name" required maxlength="50">
+      <label for="examPassword">Mật khẩu bài thi</label>
+      <input id="examPassword" name="password" type="password" required autocomplete="current-password">
+      <p id="joinMessage" class="message" role="alert"></p>
+      <button id="joinButton" class="btn-primary" type="submit">Xác thực & vào thi <span aria-hidden="true">→</span></button>
+    </form>
+    <p class="public-exam-footnote">Phiên làm bài được lưu tự động trên hệ thống.</p>
+  </main>
+  <script src="/static/js/datetime.js"></script>
+  <script src="/static/js/public_exam_join.js"></script>
+</body>
+</html>

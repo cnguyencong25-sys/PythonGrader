@@ -1,0 +1,141 @@
+{% extends "student_base.html" %}
+{% block title %}Thông tin chương — Python Grader{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <a href="/student/chapters" class="btn-back-inline">← Quay lại</a>
+    <h1>ℹ️ Thông tin chương</h1>
+  </div>
+</div>
+
+<div class="card-section student-chapter-detail-card">
+  <div class="student-chapter-heading">
+    <h2>{{ chapter.name }}</h2>
+    <p>
+      Chế độ: 
+      {% if chapter.mode == 'review' %}
+        <strong class="chapter-mode-review">🎯 Ôn tập chương (Random 5 câu)</strong>
+      {% else %}
+        <strong class="chapter-mode-practice">📖 Luyện tập toàn bộ ({{ chapter.exercises|length }} bài)</strong>
+      {% endif %}
+    </p>
+  </div>
+
+  <!-- VÙNG NÚT BẤM -->
+  <div id="actionArea" class="btn-group student-chapter-actions">
+    <p class="loading">Đang tải trạng thái...</p>
+  </div>
+
+  <!-- LỊCH SỬ LÀM BÀI -->
+  <section class="student-history-section">
+    <h3>📜 Lịch sử làm bài</h3>
+    <div id="historyArea">
+      <p class="loading">Đang tải lịch sử...</p>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const chapterId = {{ chapter.id }};
+  let activeSid = null;
+
+  async function fetchJSON(url, opts = {}) {
+    opts.credentials = "include";
+    opts.headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
+    const res = await fetch(url, opts);
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, data };
+  }
+
+  async function loadDetail() {
+    const actionArea = document.getElementById("actionArea");
+    const historyArea = document.getElementById("historyArea");
+    let response;
+    try {
+      response = await fetchJSON(`/api/student/chapters/${chapterId}`);
+    } catch (error) {
+      actionArea.innerHTML = '<p class="student-load-error">Không thể kết nối máy chủ. Vui lòng tải lại trang.</p>';
+      historyArea.innerHTML = '<p class="student-load-error">Không thể tải lịch sử làm bài.</p>';
+      return;
+    }
+
+    const { ok, data } = response;
+    if (!ok || !data.success) {
+      actionArea.innerHTML = '<p class="student-load-error"></p>';
+      actionArea.querySelector("p").textContent = data.message || "Lỗi tải dữ liệu.";
+      historyArea.innerHTML = '<p class="student-load-error">Không thể tải lịch sử làm bài.</p>';
+      return;
+    }
+
+    activeSid = data.active_session_id;
+
+    // 1. Render nút bấm
+    if (activeSid) {
+      // Có bài đang làm dở
+      actionArea.innerHTML = `
+        <button id="btnRestart" class="btn-secondary">🔄 Bắt đầu lại</button>
+        <button id="btnContinue" class="btn-primary">▶️ Tiếp tục làm</button>
+      `;
+      // Gắn sự kiện
+      document.getElementById("btnRestart").addEventListener("click", startNew);
+      document.getElementById("btnContinue").addEventListener("click", () => {
+        window.location.href = `/student/workspace?session_id=${activeSid}`;
+      });
+    } else {
+      // Chưa có bài làm dở
+      actionArea.innerHTML = `
+        <a href="/student/chapters" class="btn-secondary">Huỷ</a>
+        <button id="btnStart" class="btn-primary">🚀 Bắt đầu làm</button>
+      `;
+      // Gắn sự kiện
+      document.getElementById("btnStart").addEventListener("click", startNew);
+    }
+
+    // 2. Render lịch sử
+    if (data.history && data.history.length > 0) {
+      let html = `<table class="history-table">
+        <thead><tr><th>Lần</th><th>Thời gian bắt đầu</th><th>Thời gian kết thúc</th><th>Điểm</th></tr></thead><tbody>`;
+      
+      data.history.forEach((h, i) => {
+        const start = formatVietnamDateTime(h.started_at);
+        const end = formatVietnamDateTime(h.finished_at);
+        html += `<tr>
+          <td>#${data.history.length - i}</td>
+          <td>${start}</td>
+          <td>${end}</td>
+          <td><strong class="student-score-value">${h.total_score}</strong> / ${h.total_max}</td>
+        </tr>`;
+      });
+      html += `</tbody></table>`;
+      historyArea.innerHTML = html;
+    } else {
+      historyArea.innerHTML = `<p class="history-empty">Bạn chưa hoàn thành lần làm bài nào cho chương này.</p>`;
+    }
+  }
+
+  async function startNew() {
+    if (!confirm("Bắt đầu phiên làm bài mới? Toàn bộ code đang làm dở (nếu có) sẽ bị xoá.")) return;
+
+    const button = document.querySelector("#btnStart, #btnRestart");
+    if (button) button.disabled = true;
+    try {
+      const { ok, data } = await fetchJSON(`/api/student/chapters/${chapterId}/start`, { method: "POST" });
+      if (ok && data.success) {
+        window.location.href = `/student/workspace?session_id=${data.session_id}`;
+        return;
+      }
+      alert(data.message || "Lỗi tạo phiên làm bài.");
+    } catch (error) {
+      alert("Không thể kết nối máy chủ để tạo phiên làm bài.");
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+
+  // Khởi động
+  loadDetail();
+</script>
+{% endblock %}

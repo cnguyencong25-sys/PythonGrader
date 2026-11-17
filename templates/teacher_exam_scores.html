@@ -1,0 +1,50 @@
+{% extends "teacher_base.html" %}
+{% block title %}Quản lý điểm — Python Grader{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <a href="/teacher/exams/{{ exam.id }}/edit" class="btn-back-inline">← Quay lại cấu hình</a>
+    <h1>📊 Quản lý điểm kiểm tra</h1>
+    <p class="subtitle">Bài: <strong>{{ exam.name }}</strong></p>
+    <p class="subtitle score-export-hint">Báo cáo sẽ sắp xếp theo điểm, thời gian nộp và số lần vi phạm.</p>
+  </div>
+  <button id="exportSheetBtn" class="btn-primary export-sheet-button" type="button">
+    <span aria-hidden="true">📗</span> Xuất báo cáo xếp hạng
+  </button>
+</div>
+
+<div id="message" class="message score-export-message" role="status" aria-live="polite"></div>
+
+<section class="card-section">
+  <div class="score-filters">
+    <div><label for="filterDate">Ngày thi</label><input id="filterDate" type="date"></div>
+    <div><label for="filterClass">Lớp</label><input id="filterClass" type="search" placeholder="Lọc theo lớp"></div>
+    <div><label for="filterStudentId">MSV</label><input id="filterStudentId" type="search" placeholder="Lọc theo MSV"></div>
+    <div><label for="filterName">Họ tên</label><input id="filterName" type="search" placeholder="Lọc theo họ tên"></div>
+  </div>
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>STT</th>
+          <th>Mã sinh viên</th>
+          <th>Họ và tên</th>
+          <th>Lớp</th>
+          <th>Điểm bài làm</th>
+          <th>Thời gian làm</th>
+          <th>Vi phạm</th>
+          <th>Bài làm</th>
+        </tr>
+      </thead>
+      <tbody id="scoreTableBody">
+        <tr><td colspan="8">Đang tải...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/teacher_exam_scores.js"></script>
+{% endblock %}

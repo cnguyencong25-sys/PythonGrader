@@ -1,0 +1,167 @@
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import get_jwt_identity
+from extensions import db
+from models import Chapter, Exercise
+from decorators import role_required
+
+chapters_bp = Blueprint("chapters", __name__, url_prefix="/api/chapters")
+MIN_REVIEW_EXERCISES = 5
+
+def _json_error(msg, code=400):
+    return jsonify({"success": False, "message": msg}), code
+
+# ============================================================
+# 1. DANH SÁCH CHƯƠNG (Dành cho Giáo viên)
+# ============================================================
+@chapters_bp.route("", methods=["GET"])
+@role_required("teacher")
+def list_chapters():
+    teacher_id = int(get_jwt_identity())
+    chapters = Chapter.query.filter_by(teacher_id=teacher_id).order_by(Chapter.created_at.desc()).all()
+    return jsonify({"success": True, "chapters": [c.to_dict(include_exercises=True, exercises_brief=True) for c in chapters]}), 200
+
+# ============================================================
+# 2. CHI TIẾT CHƯƠNG
+# ============================================================
+@chapters_bp.route("/<int:cid>", methods=["GET"])
+@role_required("teacher")
+def get_chapter(cid):
+    teacher_id = int(get_jwt_identity())
+    c = Chapter.query.filter_by(id=cid, teacher_id=teacher_id).first()
+    if not c: return _json_error("Không tìm thấy chương.", 404)
+    return jsonify({"success": True, "chapter": c.to_dict(include_exercises=True)}), 200
+
+# ============================================================
+# 3. TẠO CHƯƠNG MỚI (Mặc định Luyện tập)
+# ============================================================
+@chapters_bp.route("", methods=["POST"])
+@role_required("teacher")
+def create_chapter():
+    data = request.get_json(silent=True) or {}
+    name = (data.get("name") or "").strip()
+    if not name or len(name) < 3:
+        return _json_error("Tên chương phải có ít nhất 3 ký tự.")
+    
+    chapter = Chapter(name=name, mode="practice", teacher_id=int(get_jwt_identity()))
+    db.session.add(chapter)
+    db.session.commit()
+    return jsonify({"success": True, "message": "Đã tạo chương.", "chapter": chapter.to_dict(include_exercises=True, exercises_brief=True)}), 201
+
+# ============================================================
+# 4. SỬA CHƯƠNG (Cài đặt chế độ)
+# ============================================================
+@chapters_bp.route("/<int:cid>", methods=["PUT"])
+@role_required("teacher")
+def update_chapter(cid):
+    teacher_id = int(get_jwt_identity())
+    c = Chapter.query.filter_by(id=cid, teacher_id=teacher_id).first()
+    if not c: return _json_error("Không tìm thấy chương.", 404)
+
+    data = request.get_json(silent=True) or {}
+    if "name" in data:
+        name = (data.get("name") or "").strip()
+        if len(name) < 3: return _json_error("Tên chương phải từ 3 ký tự.")
+        c.name = name
+
+    if "mode" in data:
+        mode = (data.get("mode") or "").strip()
+        if mode not in ("practice", "review"): return _json_error("Chế độ không hợp lệ.")
+        # Chỉ đếm các bài đang xuất bản
+        published_count = len([ex for ex in c.exercises if ex.is_published])
+        if mode == "review" and published_count <= MIN_REVIEW_EXERCISES:
+            return _json_error(f"Chế độ 'Ôn tập' yêu cầu xuất bản trên {MIN_REVIEW_EXERCISES} bài tập. Hiện có {published_count} bài.", 400)
+        c.mode = mode
+
+    db.session.commit()
+    return jsonify({"success": True, "message": "Đã cập nhật chương.", "chapter": c.to_dict(include_exercises=True, exercises_brief=True)}), 200
+
+# ============================================================
+# 5. XOÁ CHƯƠNG
+# ============================================================
+@chapters_bp.route("/<int:cid>", methods=["DELETE"])
+@role_required("teacher")
+def delete_chapter(cid):
+    c = Chapter.query.filter_by(id=cid, teacher_id=int(get_jwt_identity())).first()
+    if not c: return _json_error("Không tìm thấy chương.", 404)
+    db.session.delete(c)
+    db.session.commit()
+    return jsonify({"success": True, "message": "Đã xoá chương."}), 200
+
+# ============================================================
+# 6. THÊM BÀI TẬP VÀO CHƯƠNG (Đã cập nhật cấu trúc mới)
+# ============================================================
+@chapters_bp.route("/<int:cid>/exercises", methods=["POST"])
+@role_required("teacher")
+def create_exercise(cid):
+    c = Chapter.query.filter_by(id=cid, teacher_id=int(get_jwt_identity())).first()
+    if not c: return _json_error("Không tìm thấy chương.", 404)
+
+    data = request.get_json(silent=True) or {}
+    title = (data.get("title") or "").strip()
+    if len(title) < 3: return _json_error("Tên bài tập phải từ 3 ký tự.")
+    
+    ex = Exercise(
+        chapter_id=c.id, 
+        title=title, 
+        description=data.get("description", ""),
+        input_format=data.get("input_format", ""),
+        output_format=data.get("output_format", ""),
+        constraints=data.get("constraints", ""),
+        sample_input=data.get("sample_input", ""),
+        sample_output=data.get("sample_output", ""),
+        generator_code=data.get("generator_code", ""),
+        solution_code=data.get("solution_code", ""),
+        num_test_cases=int(data.get("num_test_cases", 10)),
+        is_published=True
+    )
+    db.session.add(ex)
+    db.session.commit()
+    return jsonify({"success": True, "exercise": ex.to_dict()}), 201
+
+# ============================================================
+# 7. SỬA BÀI TẬP (Đã cập nhật cấu trúc mới)
+# ============================================================
+@chapters_bp.route("/exercises/<int:eid>", methods=["PUT"])
+@role_required("teacher")
+def update_exercise(eid):
+    ex = Exercise.query.get(eid)
+    if not ex or ex.chapter.teacher_id != int(get_jwt_identity()): return _json_error("Không có quyền.", 403)
+
+    data = request.get_json(silent=True) or {}
+    if "title" in data: ex.title = data.get("title", "").strip()
+    if "description" in data: ex.description = data.get("description", "").strip()
+    if "input_format" in data: ex.input_format = data.get("input_format", "")
+    if "output_format" in data: ex.output_format = data.get("output_format", "")
+    if "constraints" in data: ex.constraints = data.get("constraints", "")
+    if "sample_input" in data: ex.sample_input = data.get("sample_input", "")
+    if "sample_output" in data: ex.sample_output = data.get("sample_output", "")
+    if "generator_code" in data: ex.generator_code = data.get("generator_code", "")
+    if "solution_code" in data: ex.solution_code = data.get("solution_code", "")
+    if "num_test_cases" in data: ex.num_test_cases = int(data.get("num_test_cases", 10))
+
+    db.session.commit()
+    return jsonify({"success": True, "exercise": ex.to_dict()}), 200
+
+# ============================================================
+# 8. XOÁ BÀI TẬP
+# ============================================================
+@chapters_bp.route("/exercises/<int:eid>", methods=["DELETE"])
+@role_required("teacher")
+def delete_exercise(eid):
+    ex = Exercise.query.get(eid)
+    if not ex or ex.chapter.teacher_id != int(get_jwt_identity()): return _json_error("Không có quyền.", 403)
+    db.session.delete(ex)
+    db.session.commit()
+    return jsonify({"success": True}), 200
+
+# ============================================================
+# 9. API ẨN/XUẤT BẢN BÀI TẬP
+# ============================================================
+@chapters_bp.route("/exercises/<int:eid>/toggle-publish", methods=["POST"])
+@role_required("teacher")
+def toggle_publish_exercise(eid):
+    ex = Exercise.query.get(eid)
+    if not ex or ex.chapter.teacher_id != int(get_jwt_identity()): return _json_error("Không có quyền.", 403)
+    ex.is_published = not ex.is_published
+    db.session.commit()
+    return jsonify({"success": True, "is_published": ex.is_published}), 200

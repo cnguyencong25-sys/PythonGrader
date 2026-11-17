@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hồ sơ — Python Grader</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="profile-body">
+  <div class="dashboard-wrapper">
+    <header class="dash-header">
+      <div class="profile-header-title">
+        <span class="profile-brand-mark" aria-hidden="true">🐍</span>
+        <div>
+          <h1>Hồ sơ & Phiên đăng nhập</h1>
+          <p>Quản lý thông tin tài khoản và bảo mật</p>
+        </div>
+      </div>
+      <div class="user-info">
+        <a href="/teacher/dashboard" class="btn-back">← Quay lại</a>
+      </div>
+    </header>
+
+    <main class="dash-main profile-main">
+      <div class="profile-card">
+        <h3>👤 Thông tin cá nhân</h3>
+        <div class="profile-detail-list">
+          <p><strong>Email</strong><span>{{ user.email }}</span></p>
+          <p><strong>Vai trò</strong><span>👨‍🏫 Giáo viên</span></p>
+          {% if user.full_name %}<p><strong>Họ tên</strong><span>{{ user.full_name }}</span></p>{% endif %}
+        </div>
+      </div>
+
+      <div class="profile-card">
+        <h3>🛡️ Bảo mật phiên đăng nhập</h3>
+
+        <div class="info-box">
+          <strong>Đăng nhập một thiết bị</strong>
+          <span>Mỗi tài khoản chỉ hoạt động trên một thiết bị tại một thời điểm. Đăng nhập ở thiết bị khác sẽ kết thúc phiên hiện tại.</span>
+        </div>
+
+        <div class="warn-box">
+          <strong>Đăng xuất tự động</strong>
+          <span>Phiên làm việc sẽ kết thúc sau {{ idle_minutes }} phút không có tương tác.</span>
+        </div>
+
+        <p class="profile-session-status"><span class="status-dot"></span>Không phát hiện thiết bị khác đang đăng nhập.</p>
+      </div>
+    </main>
+  </div>
+  <script src="/static/js/idle_timeout.js"></script>
+</body>
+</html>

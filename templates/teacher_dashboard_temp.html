@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard GV (tạm thời)</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="dashboard-wrapper">
+    <header class="dash-header">
+      <h1>🐍 Giáo viên — {{ user.full_name }}</h1>
+      <div class="user-info">
+        <a href="/profile" class="btn-back">🖥 Quản lý phiên</a>
+        <button id="logoutBtn" class="btn-logout">Đăng xuất</button>
+      </div>
+    </header>
+    <main class="dash-main">
+      <h2>Chào mừng, {{ user.full_name }}!</h2>
+      <p>Trang dashboard giáo viên đầy đủ sẽ được triển khai ở Giai đoạn 5.</p>
+    </main>
+  </div>
+  <script>
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+      window.location.href = "/login";
+    });
+  </script>
+  <script src="/static/js/idle_timeout.js"></script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+{% extends "student_base.html" %}
+{% block title %}Bài kiểm tra — Python Grader{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>📝 Bài kiểm tra</h1>
+    <p class="subtitle">Danh sách các bài thi đã được giao</p>
+  </div>
+</div>
+
+<div id="message" class="message"></div>
+
+<div id="examList" class="chapter-grid">
+  <p class="loading">Đang tải...</p>
+</div>
+
+<div id="examPasswordModal" class="modal-overlay hidden">
+  <section class="modal-box exam-password-modal" role="dialog" aria-modal="true" aria-labelledby="examPasswordTitle">
+    <header class="exam-password-header">
+      <span class="exam-password-icon" aria-hidden="true">🔒</span>
+      <div>
+        <h2 id="examPasswordTitle">Xác thực vào bài thi</h2>
+        <p id="examPasswordExamName"></p>
+      </div>
+    </header>
+    <form id="examPasswordForm">
+      <label for="examPasswordInput">Mật khẩu bài thi</label>
+      <input id="examPasswordInput" type="password" required autocomplete="current-password"
+             placeholder="Nhập mật khẩu do giảng viên cung cấp">
+      <p id="examPasswordMessage" class="message" role="alert"></p>
+      <div class="modal-actions exam-password-actions">
+        <button type="button" class="btn-secondary" id="cancelExamPassword">Huỷ</button>
+        <button type="submit" class="btn-primary">Xác nhận & vào thi</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/student_exams.js"></script>
+{% endblock %}

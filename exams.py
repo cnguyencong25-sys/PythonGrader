@@ -1,0 +1,449 @@
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import get_jwt_identity
+from extensions import db
+from models import Exam, ExamExercise, ExamChapterRule, PublicExamSession, ExamSession, Exercise
+from decorators import role_required
+from datetime import datetime, timedelta
+import json
+import os
+import statistics
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
+from time_utils import vietnam_elapsed_seconds, vietnam_iso, vietnam_now_naive
+
+exams_bp = Blueprint("exams", __name__, url_prefix="/api/exams")
+
+def _json_error(msg, code=400):
+    return jsonify({"success": False, "message": msg}), code
+
+def _parse_datetime(s):
+    if not s: return None
+    s = s.strip().replace(" ", "T")
+    for fmt in ("%Y-%m-%dT%H:%M", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):
+        try: return datetime.strptime(s, fmt)
+        except ValueError: continue
+    return None
+
+# ============================================================
+# 1. DANH SÁCH BÀI KIỂM TRA
+# ============================================================
+@exams_bp.route("", methods=["GET"])
+@role_required("teacher")
+def list_exams():
+    teacher_id = int(get_jwt_identity())
+    exams = Exam.query.filter_by(teacher_id=teacher_id).order_by(Exam.created_at.desc()).all()
+    return jsonify({"success": True, "exams": [e.to_dict(include_exercises=True, exercises_brief=True) for e in exams]}), 200
+
+# ============================================================
+# 2. CHI TIẾT BÀI KIỂM TRA
+# ============================================================
+@exams_bp.route("/<int:eid>", methods=["GET"])
+@role_required("teacher")
+def get_exam(eid):
+    teacher_id = int(get_jwt_identity())
+    exam = Exam.query.filter_by(id=eid, teacher_id=teacher_id).first()
+    if not exam: return _json_error("Không tìm thấy bài kiểm tra.", 404)
+    return jsonify({"success": True, "exam": exam.to_dict(include_exercises=True)}), 200
+
+# ============================================================
+# 3. TẠO BÀI KIỂM TRA
+# ============================================================
+@exams_bp.route("", methods=["POST"])
+@role_required("teacher")
+def create_exam():
+    data = request.get_json(silent=True) or {}
+    name = (data.get("name") or "").strip()
+    start_time_str = data.get("start_time")
+    end_time_str = data.get("end_time")
+    duration = data.get("duration_minutes", 45)
+    max_attempts = data.get("max_attempts", 1)
+    exam_password = (data.get("exam_password") or "").strip()
+
+    if not name or len(name) < 3:
+        return _json_error("Tên bài kiểm tra phải có ít nhất 3 ký tự.")
+    
+    try:
+        duration = int(duration)
+        if duration <= 0: return _json_error("Thời gian làm bài phải lớn hơn 0.")
+    except (ValueError, TypeError):
+        return _json_error("Thời gian làm bài không hợp lệ.")
+    try:
+        max_attempts = int(max_attempts)
+        if max_attempts < 1:
+            return _json_error("Số lượt làm bài phải ít nhất là 1.")
+    except (ValueError, TypeError):
+        return _json_error("Số lượt làm bài không hợp lệ.")
+
+    start_time = _parse_datetime(start_time_str)
+    end_time = _parse_datetime(end_time_str)
+    
+    if start_time and end_time and start_time >= end_time:
+        return _json_error("Thời gian kết thúc phải sau thời gian bắt đầu.")
+
+    exam = Exam(
+        name=name,
+        start_time=start_time,
+        end_time=end_time,
+        duration_minutes=duration,
+        max_attempts=max_attempts,
+        teacher_id=int(get_jwt_identity())
+    )
+    exam.set_exam_password(exam_password)
+    db.session.add(exam)
+    db.session.commit()
+    
+    return jsonify({"success": True, "message": "Đã tạo bài kiểm tra.", "exam": exam.to_dict(include_exercises=True, exercises_brief=True)}), 201
+
+# ============================================================
+# 4. SỬA BÀI KIỂM TRA
+# ============================================================
+@exams_bp.route("/<int:eid>", methods=["PUT"])
+@role_required("teacher")
+def update_exam(eid):
+    teacher_id = int(get_jwt_identity())
+    exam = Exam.query.filter_by(id=eid, teacher_id=teacher_id).first()
+    if not exam: return _json_error("Không tìm thấy bài kiểm tra.", 404)
+
+    data = request.get_json(silent=True) or {}
+    
+    if "name" in data:
+        name = (data.get("name") or "").strip()
+        if len(name) < 3: return _json_error("Tên phải có ít nhất 3 ký tự.")
+        exam.name = name
+
+    if "start_time" in data:
+        exam.start_time = _parse_datetime(data.get("start_time"))
+    if "end_time" in data:
+        exam.end_time = _parse_datetime(data.get("end_time"))
+    
+    if exam.start_time and exam.end_time and exam.start_time >= exam.end_time:
+        return _json_error("Thời gian kết thúc phải sau thời gian bắt đầu.")
+
+    if "duration_minutes" in data:
+        try:
+            duration = int(data.get("duration_minutes"))
+            if duration <= 0: return _json_error("Thời gian làm bài phải > 0.")
+            exam.duration_minutes = duration
+        except (ValueError, TypeError):
+            return _json_error("Thời gian làm bài không hợp lệ.")
+    if "max_attempts" in data:
+        try:
+            max_attempts = int(data.get("max_attempts"))
+            if max_attempts < 1:
+                return _json_error("Số lượt làm bài phải ít nhất là 1.")
+            exam.max_attempts = max_attempts
+        except (ValueError, TypeError):
+            return _json_error("Số lượt làm bài không hợp lệ.")
+    if data.get("clear_exam_password"):
+        exam.set_exam_password("")
+    elif (data.get("exam_password") or "").strip():
+        exam.set_exam_password(data["exam_password"].strip())
+
+    db.session.commit()
+    return jsonify({"success": True, "message": "Đã cập nhật bài kiểm tra.", "exam": exam.to_dict(include_exercises=True, exercises_brief=True)}), 200
+
+# ============================================================
+# 5. XOÁ BÀI KIỂM TRA
+# ============================================================
+@exams_bp.route("/<int:eid>", methods=["DELETE"])
+@role_required("teacher")
+def delete_exam(eid):
+    teacher_id = int(get_jwt_identity())
+    exam = Exam.query.filter_by(id=eid, teacher_id=teacher_id).first()
+    if not exam: return _json_error("Không tìm thấy bài kiểm tra.", 404)
+    db.session.delete(exam)
+    db.session.commit()
+    return jsonify({"success": True, "message": "Đã xoá bài kiểm tra."}), 200
+
+# ============================================================
+# 6. THÊM BÀI TẬP VÀO BÀI KIỂM TRA
+# ============================================================
+@exams_bp.route("/<int:eid>/exercises", methods=["POST"])
+@role_required("teacher")
+def create_exam_exercise(eid):
+    teacher_id = int(get_jwt_identity())
+    exam = Exam.query.filter_by(id=eid, teacher_id=teacher_id).first()
+    if not exam: return _json_error("Không tìm thấy bài kiểm tra.", 404)
+
+    data = request.get_json(silent=True) or {}
+    title = (data.get("title") or "").strip()
+    if len(title) < 3: return _json_error("Tên bài tập phải có ít nhất 3 ký tự.")
+
+    ex = ExamExercise(
+        exam_id=exam.id, 
+        title=title, 
+        description=data.get("description", ""),
+        input_format=data.get("input_format", ""),
+        output_format=data.get("output_format", ""),
+        constraints=data.get("constraints", ""),
+        sample_input=data.get("sample_input", ""),
+        sample_output=data.get("sample_output", ""),
+        generator_code=data.get("generator_code", ""),
+        solution_code=data.get("solution_code", ""),
+        num_test_cases=int(data.get("num_test_cases", 10)),
+        is_published=True
+    )
+    db.session.add(ex)
+    db.session.commit()
+    return jsonify({"success": True, "exercise": ex.to_dict()}), 201
+
+# ============================================================
+# 7. CHI TIẾT BÀI TẬP (Giáo viên)
+# ============================================================
+@exams_bp.route("/exercises/<int:eid>", methods=["GET"])
+@role_required("teacher")
+def get_exam_exercise(eid):
+    ex = ExamExercise.query.get(eid)
+    if not ex or ex.exam.teacher_id != int(get_jwt_identity()): return _json_error("Không có quyền.", 403)
+    return jsonify({"success": True, "exercise": ex.to_dict()}), 200
+
+# ============================================================
+# 8. SỬA BÀI TẬP (Giáo viên)
+# ============================================================
+@exams_bp.route("/exercises/<int:eid>", methods=["PUT"])
+@role_required("teacher")
+def update_exam_exercise(eid):
+    ex = ExamExercise.query.get(eid)
+    if not ex or ex.exam.teacher_id != int(get_jwt_identity()): return _json_error("Không có quyền.", 403)
+
+    data = request.get_json(silent=True) or {}
+    if "title" in data: ex.title = data.get("title", "").strip()
+    if "description" in data: ex.description = data.get("description", "").strip()
+    if "input_format" in data: ex.input_format = data.get("input_format", "")
+    if "output_format" in data: ex.output_format = data.get("output_format", "")
+    if "constraints" in data: ex.constraints = data.get("constraints", "")
+    if "sample_input" in data: ex.sample_input = data.get("sample_input", "")
+    if "sample_output" in data: ex.sample_output = data.get("sample_output", "")
+    if "generator_code" in data: ex.generator_code = data.get("generator_code", "")
+    if "solution_code" in data: ex.solution_code = data.get("solution_code", "")
+    if "num_test_cases" in data: ex.num_test_cases = int(data.get("num_test_cases", 10))
+
+    db.session.commit()
+    return jsonify({"success": True, "exercise": ex.to_dict()}), 200
+
+# ============================================================
+# 9. XOÁ BÀI TẬP (Giáo viên)
+# ============================================================
+@exams_bp.route("/exercises/<int:eid>", methods=["DELETE"])
+@role_required("teacher")
+def delete_exam_exercise(eid):
+    ex = ExamExercise.query.get(eid)
+    if not ex or ex.exam.teacher_id != int(get_jwt_identity()): return _json_error("Không có quyền.", 403)
+    db.session.delete(ex)
+    db.session.commit()
+    return jsonify({"success": True}), 200
+
+# ============================================================
+# 10. API ẨN/XUẤT BẢN BÀI TẬP
+# ============================================================
+@exams_bp.route("/exercises/<int:eid>/toggle-publish", methods=["POST"])
+@role_required("teacher")
+def toggle_exam_exercise(eid):
+    ex = ExamExercise.query.get(eid)
+    if not ex or ex.exam.teacher_id != int(get_jwt_identity()): return _json_error("Không có quyền.", 403)
+    ex.is_published = not ex.is_published
+    db.session.commit()
+    return jsonify({"success": True, "is_published": ex.is_published}), 200
+
+
+@exams_bp.route("/<int:eid>/chapter-rules", methods=["GET", "PUT"])
+@role_required("teacher")
+def exam_chapter_rules(eid):
+    teacher_id = int(get_jwt_identity())
+    exam = Exam.query.filter_by(id=eid, teacher_id=teacher_id).first()
+    if not exam:
+        return _json_error("Không tìm thấy bài kiểm tra.", 404)
+
+    if request.method == "GET":
+        return jsonify({"success": True, "rules": [
+            {"chapter_id": rule.chapter_id, "chapter_name": rule.chapter.name, "question_count": rule.question_count}
+            for rule in exam.chapter_rules
+        ]}), 200
+
+    data = request.get_json(silent=True) or {}
+    rules = data.get("rules")
+    if not isinstance(rules, list):
+        return _json_error("Danh sách chương không hợp lệ.")
+    normalized = []
+    seen = set()
+    from models import Chapter
+    for item in rules:
+        try:
+            chapter_id = int(item.get("chapter_id"))
+            count = int(item.get("question_count"))
+        except (AttributeError, TypeError, ValueError):
+            return _json_error("Chương hoặc số câu hỏi không hợp lệ.")
+        chapter = Chapter.query.filter_by(id=chapter_id, teacher_id=teacher_id).first()
+        if not chapter or chapter_id in seen or count < 1:
+            return _json_error("Chương không hợp lệ hoặc số câu hỏi phải lớn hơn 0.")
+        available = Exercise.query.filter_by(chapter_id=chapter_id, is_published=True).count()
+        if count > available:
+            return _json_error(f"Chương {chapter.name} chỉ có {available} câu hỏi đã xuất bản.")
+        normalized.append((chapter_id, count))
+        seen.add(chapter_id)
+
+    ExamChapterRule.query.filter_by(exam_id=eid).delete()
+    for chapter_id, count in normalized:
+        db.session.add(ExamChapterRule(exam_id=eid, chapter_id=chapter_id, question_count=count))
+    db.session.commit()
+    return jsonify({"success": True, "rules": [
+        {"chapter_id": rule.chapter_id, "chapter_name": rule.chapter.name, "question_count": rule.question_count}
+        for rule in exam.chapter_rules
+    ]}), 200
+
+
+def _matches_score_filters(started_at, class_name, student_id, full_name):
+    exam_day = request.args.get("date", "").strip()
+    filters = (
+        (request.args.get("class_name", "").strip(), class_name),
+        (request.args.get("student_id", "").strip(), student_id),
+        (request.args.get("full_name", "").strip(), full_name),
+    )
+    if exam_day and started_at.date().isoformat() != exam_day:
+        return False
+    return all(not expected or expected.casefold() in actual.casefold() for expected, actual in filters)
+
+
+def _format_time_taken(started_at, finished_at):
+    seconds = vietnam_elapsed_seconds(started_at, finished_at)
+    return str(timedelta(seconds=seconds)) if seconds is not None else ""
+
+
+def _filtered_score_rows(exam_id):
+    rows = []
+    for session in PublicExamSession.query.filter_by(exam_id=exam_id, is_finalized=True).all():
+        if not _matches_score_filters(
+            session.started_at, session.class_name, session.student_id, session.full_name
+        ):
+            continue
+        totals = session.to_dict()
+        rows.append({
+            "session_id": session.id, "student_id": session.student_id,
+            "full_name": session.full_name, "class_name": session.class_name,
+            "score": totals["total_score"], "max_score": totals["total_max"],
+            "time_taken": _format_time_taken(session.started_at, session.finished_at),
+            "exam_date": session.started_at.date().isoformat(),
+            "violation_count": session.violation_count,
+            "started_at": vietnam_iso(session.started_at),
+            "finished_at": vietnam_iso(session.finished_at),
+            "email": "",
+            "status": (
+                "Chưa nộp" if not any(submission.code.strip() for submission in session.submissions)
+                else "Nghi vấn gian lận" if session.violation_count else "Hoàn thành"
+            ),
+            "submissions": [submission.to_dict() for submission in session.submissions],
+        })
+    for session in ExamSession.query.filter_by(exam_id=exam_id, is_finalized=True).all():
+        if not session.user:
+            continue
+        class_name = session.user.class_name or ""
+        student_id = session.user.student_id or ""
+        full_name = session.user.full_name or ""
+        if not _matches_score_filters(session.started_at, class_name, student_id, full_name):
+            continue
+        totals = session.to_dict()
+        rows.append({
+            "session_id": session.id, "student_id": student_id, "full_name": full_name,
+            "class_name": class_name, "score": totals["total_score"], "max_score": totals["total_max"],
+            "time_taken": _format_time_taken(session.started_at, session.finished_at),
+            "exam_date": session.started_at.date().isoformat(), "violation_count": 0,
+            "started_at": vietnam_iso(session.started_at),
+            "finished_at": vietnam_iso(session.finished_at),
+            "email": session.user.email,
+            "status": (
+                "Chưa nộp" if not any(submission.code.strip() for submission in session.submissions)
+                else "Hoàn thành"
+            ),
+            "submissions": [submission.to_dict() for submission in session.submissions],
+        })
+    rows.sort(key=lambda row: row["started_at"], reverse=True)
+    return rows
+
+
+@exams_bp.route("/<int:eid>/scores", methods=["GET"])
+@role_required("teacher")
+def exam_scores(eid):
+    exam = Exam.query.filter_by(id=eid, teacher_id=int(get_jwt_identity())).first()
+    if not exam:
+        return _json_error("Không tìm thấy bài kiểm tra.", 404)
+    return jsonify({"success": True, "scores": _filtered_score_rows(eid)}), 200
+
+
+@exams_bp.route("/<int:eid>/export-sheet", methods=["POST"])
+@role_required("teacher")
+def export_scores_to_sheet(eid):
+    exam = Exam.query.filter_by(id=eid, teacher_id=int(get_jwt_identity())).first()
+    if not exam:
+        return _json_error("Không tìm thấy bài kiểm tra.", 404)
+    webhook_url = os.getenv("GOOGLE_SHEETS_WEBHOOK_URL", "").strip()
+    if not webhook_url:
+        return _json_error("Chưa cấu hình GOOGLE_SHEETS_WEBHOOK_URL cho Google Sheets.", 503)
+
+    scores = _filtered_score_rows(eid)
+    scores.sort(key=lambda row: (
+        -float(row["score"]),
+        row["finished_at"] or "9999-12-31T23:59:59+07:00",
+        int(row["violation_count"]),
+        row["student_id"].casefold(),
+        row["full_name"].casefold(),
+    ))
+    for rank, score in enumerate(scores, start=1):
+        score["rank"] = rank
+
+    numeric_scores = [float(score["score"]) for score in scores]
+    payload = {
+        "version": 2,
+        "exam": exam.name,
+        "report": {
+            "exam_name": exam.name,
+            "duration_minutes": exam.duration_minutes,
+            "exported_at": vietnam_iso(vietnam_now_naive()),
+            "participant_count": len(scores),
+            "average_score": round(statistics.mean(numeric_scores), 2) if numeric_scores else None,
+            "highest_score": max(numeric_scores) if numeric_scores else None,
+            "lowest_score": min(numeric_scores) if numeric_scores else None,
+        },
+        "scores": [{
+            "rank": score["rank"],
+            "student_id": score["student_id"],
+            "full_name": score["full_name"],
+            "class_name": score["class_name"],
+            "email": score["email"],
+            "score": score["score"],
+            "max_score": score["max_score"],
+            "finished_at": score["finished_at"],
+            "violation_count": score["violation_count"],
+            "status": score["status"],
+        } for score in scores],
+    }
+    request_to_sheet = Request(
+        webhook_url, data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers={"Content-Type": "application/json"}, method="POST",
+    )
+    try:
+        with urlopen(request_to_sheet, timeout=15) as response:
+            if response.status < 200 or response.status >= 300:
+                return _json_error("Google Sheets không nhận được dữ liệu.", 502)
+            response_body = response.read()
+    except (HTTPError, URLError, TimeoutError, OSError):
+        return _json_error("Không thể kết nối dịch vụ Google Sheets. Vui lòng thử lại.", 502)
+
+    try:
+        result = json.loads(response_body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return _json_error("Webhook cần trả về JSON có liên kết Google Sheets.", 502)
+    if not isinstance(result, dict):
+        return _json_error("Webhook trả về dữ liệu không hợp lệ.", 502)
+    spreadsheet_url = result.get("spreadsheetUrl") or result.get("url")
+    if not result.get("success") or not isinstance(spreadsheet_url, str):
+        return _json_error(
+            result.get("message") or "Webhook chưa trả về liên kết Google Sheets.",
+            502,
+        )
+    if not spreadsheet_url.startswith("https://docs.google.com/spreadsheets/"):
+        return _json_error("Webhook trả về liên kết Google Sheets không hợp lệ.", 502)
+    return jsonify({
+        "success": True,
+        "message": "Đã tạo báo cáo xếp hạng trên Google Sheets.",
+        "url": spreadsheet_url,
+    }), 200

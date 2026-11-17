@@ -1,0 +1,21 @@
+{% extends "student_base.html" %}
+{% block title %}Luyện tập chương — Python Grader{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>📚 Luyện tập theo chương</h1>
+    <p class="subtitle">Chọn một chương để bắt đầu làm bài tập</p>
+  </div>
+</div>
+
+<div id="message" class="message"></div>
+
+<div id="chapterList" class="chapter-grid">
+  <p class="loading">Đang tải...</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/student_chapters.js"></script>
+{% endblock %}

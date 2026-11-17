@@ -1,0 +1,60 @@
+{% extends "teacher_base.html" %}
+{% block title %}Quản lý sinh viên — Python Grader{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>👨‍🎓 Quản lý sinh viên</h1>
+    <p class="subtitle">Tra cứu thông tin, lịch sử bài thi và quyền làm lại</p>
+  </div>
+</div>
+
+<div id="studentListMessage" class="message" role="status"></div>
+
+<section class="card-section">
+  <div class="student-list-heading">
+    <div>
+      <h2>Danh sách sinh viên</h2>
+      <p><span id="studentCount">0</span> tài khoản</p>
+    </div>
+    <div class="student-search">
+      <label class="sr-only" for="studentSearch">Tìm sinh viên</label>
+      <input id="studentSearch" type="search" placeholder="Tìm theo MSV, họ tên, lớp hoặc email">
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table student-table">
+      <thead>
+        <tr>
+          <th>Mã sinh viên</th>
+          <th>Họ và tên</th>
+          <th>Lớp</th>
+          <th>Email</th>
+          <th>Danh sách bài đã làm</th>
+          <th>Xóa tài khoản</th>
+        </tr>
+      </thead>
+      <tbody id="studentTableBody">
+        <tr><td class="empty-table-cell" colspan="6">Đang tải danh sách sinh viên...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div id="deleteStudentModal" class="modal-overlay hidden">
+  <section class="modal-box student-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="deleteStudentTitle">
+    <div class="student-confirm-icon student-confirm-danger" aria-hidden="true">!</div>
+    <h2 id="deleteStudentTitle">Xóa tài khoản sinh viên?</h2>
+    <p>Bạn sắp xóa tài khoản <strong id="deleteStudentName"></strong> cùng lịch sử luyện tập và bài thi gắn trực tiếp với tài khoản. Thao tác này không thể hoàn tác.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="cancelDeleteStudent">Hủy</button>
+      <button type="button" class="btn-delete-confirm" id="confirmDeleteStudent">Xóa vĩnh viễn</button>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/teacher_students.js"></script>
+{% endblock %}

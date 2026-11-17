@@ -1,0 +1,101 @@
+{% extends "student_base.html" %}
+{% block title %}Làm bài — {{ chapter.name }}{% endblock %}
+
+{% block head %}
+<!-- Nhúng CodeMirror -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/closebrackets.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="workspace-layout" data-chapter-id="{{ chapter.id }}" data-session-id="{{ session_id }}">
+  
+  <!-- CỘT TRÁI: DANH SÁCH CÂU HỎI -->
+  <div class="ws-sidebar">
+    <div class="ws-sidebar-header">
+      <h3>Danh sách câu hỏi</h3>
+      <p class="ws-context-name">{{ chapter.name }}</p>
+    </div>
+    <div class="ws-exercise-grid" id="exerciseGrid">
+      <!-- Nút các bài tập sẽ được JS render vào đây -->
+    </div>
+    <!-- Nút Kết thúc làm bài -->
+    <div class="ws-sidebar-footer">
+      <button id="finishBtn" class="btn-finish">🏁 Kết thúc làm bài</button>
+    </div>
+  </div>
+
+  <!-- CỘT PHẢI: BÀI LÀM -->
+  <div class="ws-main">
+    <div class="ws-problem-header">
+      <h2 id="problemTitle">Chọn một câu hỏi để bắt đầu</h2>
+    </div>
+    
+    <div class="ws-problem-body" id="problemBody" style="display: none;">
+      <div class="ws-problem-desc">
+        <h4>Đề bài:</h4>
+        <div id="problemDescription" class="desc-content"></div>
+        
+        <div class="io-examples" id="ioExamples">
+          <div>
+            <h4>Input mẫu:</h4>
+            <pre id="problemSampleInput"></pre>
+          </div>
+          <div>
+            <h4>Output mẫu:</h4>
+            <pre id="problemSampleOutput"></pre>
+          </div>
+        </div>
+      </div>
+      
+      <div class="ws-editor-area">
+        <textarea id="codeEditor"></textarea>
+      </div>
+      
+      <div class="ws-toolbar">
+        <div id="submitResult" class="submit-result"></div>
+        <button id="submitBtn" class="btn-primary ws-submit-button">
+          🚀 Nộp bài
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: TỔNG KẾT KẾT THÚC -->
+<div id="finishModal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h3>🏁 Tổng kết chương</h3>
+    
+    <!-- Màn hình 1: Danh sách trạng thái -->
+    <div id="summaryStep">
+      <p>Dưới đây là trạng thái các bài làm của bạn:</p>
+      <div class="summary-list" id="summaryList">
+        <!-- JS render -->
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="document.getElementById('finishModal').classList.add('hidden')">Huỷ</button>
+        <button type="button" class="btn-primary" id="confirmFinishBtn">Xác nhận nộp bài</button>
+      </div>
+    </div>
+
+    <!-- Màn hình 2: Điểm tổng kết -->
+    <div id="scoreStep" style="display: none;">
+      <p class="student-score-description">Điểm tổng kết của bạn cho chương này là:</p>
+      <div class="total-score-box">
+        <span id="finalScore">0</span> / <span id="finalMaxScore">0</span> Điểm
+      </div>
+      <div class="modal-actions modal-actions-center">
+        <button type="button" class="btn-primary ws-complete-button" id="closeFinishBtn">Hoàn tất & Trở về</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/student_workspace.js"></script>
+{% endblock %}

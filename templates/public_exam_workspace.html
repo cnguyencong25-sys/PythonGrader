@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Thi trực tuyến — {{ exam.name }}</title>
+  <script src="/static/js/student_theme.js"></script>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/student.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/closebrackets.min.js"></script>
+</head>
+<body class="public-exam-workspace-body">
+  <div class="public-workspace" data-session-id="{{ session_id }}">
+    <aside class="public-sidebar">
+      <header class="public-sidebar-header">
+        <span class="public-exam-label">PHÒNG THI TRỰC TUYẾN</span>
+        <h2>{{ exam.name }}</h2>
+      </header>
+      <button id="studentThemeToggle" class="student-theme-toggle public-theme-toggle"
+              type="button" aria-label="Chuyển sang giao diện tối" aria-pressed="false">
+        <span class="student-theme-icon" aria-hidden="true">☾</span>
+        <span class="student-theme-label">Chế độ tối</span>
+      </button>
+      <p class="timer-box" id="timeText">--:--</p>
+      <div id="exerciseGrid" class="public-question-grid"></div>
+      <footer class="public-sidebar-footer">
+        <button id="finishBtn" class="btn-primary">Kết thúc và nộp bài</button>
+      </footer>
+    </aside>
+    <main class="public-main">
+      <p id="readonlyBanner" class="readonly-banner" hidden>Đây là lịch sử bài thi ở chế độ chỉ đọc.</p>
+      <header class="public-problem-header">
+        <span class="public-exam-label">BÀI LÀM CỦA BẠN</span>
+        <h1 id="problemTitle">Đang tải đề thi...</h1>
+      </header>
+      <section id="problemBody" class="public-problem-body" hidden>
+        <article class="public-problem-card">
+          <h2>Đề bài</h2>
+          <div id="problemDescription" class="public-problem-description"></div>
+          <div class="public-example-grid">
+            <section>
+              <h3>Input mẫu</h3>
+              <pre id="problemSampleInput"></pre>
+            </section>
+            <section>
+              <h3>Output mẫu</h3>
+              <pre id="problemSampleOutput"></pre>
+            </section>
+          </div>
+        </article>
+        <section class="public-editor-card" aria-label="Trình soạn thảo mã">
+          <textarea id="codeEditor"></textarea>
+        </section>
+        <footer class="public-submit-toolbar">
+          <p id="submitResult" class="public-submit-result" role="status"></p>
+          <button id="submitBtn" class="btn-primary">Nộp câu này</button>
+        </footer>
+      </section>
+      <p id="workspaceMessage" role="alert"></p>
+    </main>
+  </div>
+  <script src="/static/js/public_exam_workspace.js"></script>
+</body>
+</html>

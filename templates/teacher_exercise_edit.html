@@ -1,0 +1,75 @@
+{% extends "teacher_base.html" %}
+{% block title %}{{ 'Sửa' if exercise else 'Thêm' }} bài tập — Python Grader{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <a href="/teacher/chapters/{{ chapter.id }}/edit" class="btn-back-inline">← Quay lại chương</a>
+    <h1>{{ '✏️ Sửa' if exercise else '➕ Thêm' }} bài tập</h1>
+    <p class="subtitle">Chương: <strong>{{ chapter.name }}</strong></p>
+  </div>
+</div>
+
+<div id="message" class="message"></div>
+
+<form id="exerciseForm" data-chapter-id="{{ chapter.id }}" data-exercise-id="{{ exercise.id if exercise else '' }}">
+  
+  <div class="teacher-exercise-grid">
+    <!-- CỘT TRÁI: THÔNG TIN ĐỀ BÀI -->
+    <section class="card-section exercise-form-card">
+      <h2>Thông tin đề bài</h2>
+      <label for="exTitle">Tên bài tập *</label>
+      <input type="text" id="exTitle" required minlength="3" value="{{ exercise.title if exercise else '' }}">
+
+      <label for="exDescription">Đề bài *</label>
+      <textarea id="exDescription" rows="5" required>{{ exercise.description if exercise else '' }}</textarea>
+
+      <label for="exInputFormat">Định dạng Input (VD: Dòng 1 chứa 2 số a, b)</label>
+      <textarea id="exInputFormat" rows="2">{{ exercise.input_format if exercise else '' }}</textarea>
+
+      <label for="exOutputFormat">Định dạng Output (VD: In ra tổng a + b)</label>
+      <textarea id="exOutputFormat" rows="2">{{ exercise.output_format if exercise else '' }}</textarea>
+
+      <label for="exConstraints">Giới hạn (Constraints) (VD: 1 &lt;= a, b &lt;= 100)</label>
+      <textarea id="exConstraints" rows="2">{{ exercise.constraints if exercise else '' }}</textarea>
+
+      <div class="row-2">
+        <div>
+          <label for="exSampleInput">Input mẫu</label>
+          <textarea id="exSampleInput" rows="3">{{ exercise.sample_input if exercise else '' }}</textarea>
+        </div>
+        <div>
+          <label for="exSampleOutput">Output mẫu</label>
+          <textarea id="exSampleOutput" rows="3">{{ exercise.sample_output if exercise else '' }}</textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- CỘT PHẢI: CẤU HÌNH CHẤM ĐIỂM -->
+    <section class="card-section exercise-form-card">
+      <h2>⚙️ Cấu hình tự động sinh Test Case</h2>
+      <p class="hint-left">Hệ thống sẽ chạy code Generator để tạo Input, sau đó chạy code Solution để lấy Output đúng.</p>
+
+      <label for="exNumTests">Số lượng Test Case sinh ra</label>
+      <input type="number" id="exNumTests" min="1" max="50" value="{{ exercise.num_test_cases if exercise else 10 }}" class="compact-number">
+
+      <label for="exGeneratorCode">Code Generator (Python) *</label>
+      <small class="field-hint">Sinh input ngẫu nhiên và in kết quả bằng <code>print</code>.</small>
+      <textarea id="exGeneratorCode" rows="8" class="code-field">{{ exercise.generator_code if exercise else 'import random\nprint(random.randint(1, 100), random.randint(1, 100))' }}</textarea>
+
+      <label for="exSolutionCode">Code Solution (Python) *</label>
+      <small class="field-hint">Đọc input, tính toán và in output chuẩn.</small>
+      <textarea id="exSolutionCode" rows="8" class="code-field">{{ exercise.solution_code if exercise else 'a, b = map(int, input().split())\nprint(a + b)' }}</textarea>
+    </section>
+  </div>
+
+  <div class="form-actions-sticky">
+    <a href="/teacher/chapters/{{ chapter.id }}/edit" class="btn-secondary">Huỷ</a>
+    <button type="submit" class="btn-primary">💾 Lưu bài tập</button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/teacher_exercise_edit.js"></script>
+{% endblock %}

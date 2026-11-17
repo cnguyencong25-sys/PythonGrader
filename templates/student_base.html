@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Sinh viên — Python Grader{% endblock %}</title>
+  <script src="/static/js/student_theme.js"></script>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/student.css">
+  {% block head %}{% endblock %}
+</head>
+<body class="student-body-fix">
+<div class="student-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="teacher-sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-icon">🐍</span>
+      <span class="brand-name">Python Grader</span>
+    </div>
+
+    <nav class="sidebar-menu">
+      <a href="/student/chapters" class="menu-item {% if active_tab == 'chapters' %}active{% endif %}">
+        <span class="menu-icon">📚</span>
+        <span>Luyện tập chương</span>
+      </a>
+      <a href="/student/exams" class="menu-item {% if active_tab == 'exams' %}active{% endif %}">
+        <span class="menu-icon">📝</span>
+        <span>Bài kiểm tra</span>
+      </a>
+      <a href="/student/profile" class="menu-item {% if active_tab == 'profile' %}active{% endif %}">
+        <span class="menu-icon">👤</span>
+        <span>Thông tin sinh viên</span>
+      </a>
+    </nav>
+
+    <div class="student-sidebar-appearance">
+      <button id="studentThemeToggle" class="student-theme-toggle" type="button"
+              aria-label="Chuyển sang giao diện tối" aria-pressed="false">
+        <span class="student-theme-icon" aria-hidden="true">☾</span>
+        <span class="student-theme-label">Chế độ tối</span>
+      </button>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="teacher-info">
+        <div class="teacher-avatar">{{ user.full_name[0] if user.full_name else '?' }}</div>
+        <div class="teacher-name">{{ user.full_name or user.email }}</div>
+      </div>
+      <button id="logoutBtn" class="btn-logout-small">Đăng xuất</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="teacher-main">
+    {% block content %}{% endblock %}
+  </main>
+
+</div>
+
+<script>
+  document.getElementById("logoutBtn").addEventListener("click", async () => {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    window.location.href = "/login";
+  });
+</script>
+<script src="/static/js/idle_timeout.js"></script>
+<script src="/static/js/datetime.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

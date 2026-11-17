@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard sinh viên — Python Grader</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="dashboard-wrapper">
+    <header class="dash-header">
+      <h1>🐍 Python Grader</h1>
+      <div class="user-info">
+        <span>👨‍🎓 {{ user.full_name }}</span>
+        <span class="badge">{{ user.class_name }}</span>
+        <span class="badge">MSV: {{ user.student_id }}</span>
+        <button id="logoutBtn" class="btn-logout">Đăng xuất</button>
+      </div>
+    </header>
+
+    <main class="dash-main">
+      <h2>Chào mừng, {{ user.full_name }}!</h2>
+      <p>Đây là dashboard sinh viên. Danh sách bài tập sẽ xuất hiện ở đây.</p>
+
+      <div class="placeholder-card">
+        📚 <strong>Danh sách bài tập</strong>
+        <p>Sẽ được triển khai ở Giai đoạn 6.</p>
+      </div>
+    </main>
+  </div>
+  <script>
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+      window.location.href = "/login";
+    });
+  </script>
+  <script src="/static/js/idle_timeout.js"></script>
+</body>
+</html>

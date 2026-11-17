@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng nhập — Python Grader</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="auth-page">
+  <div class="auth-wrapper">
+    <div class="auth-box">
+      <div class="brand-mark" aria-hidden="true">⌘</div>
+      <h1 class="brand">Python Grader</h1>
+      <p class="auth-tagline">Nền tảng luyện tập và thi lập trình</p>
+      <h2>Đăng nhập</h2>
+      <form id="loginForm" autocomplete="on">
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="you@example.com" required autofocus>
+
+        <label for="password">Mật khẩu</label>
+        <input type="password" id="password" placeholder="••••••••" required minlength="8">
+
+        <button type="submit">Đăng nhập</button>
+      </form>
+      <p id="message" class="message"></p>
+      <p class="switch-link">
+        Sinh viên chưa có tài khoản?
+        <a href="/register">Đăng ký ngay</a>
+      </p>
+    </div>
+  </div>
+  <script src="/static/js/auth.js"></script>
+  <script>
+  // Hiển thị lý do bị đăng xuất (nếu có)
+  (function () {
+    const params = new URLSearchParams(window.location.search);
+    let reason = params.get("expired");
+// Nếu reason có dạng "revoked:xxx" -> lấy phần sau dấu ":"
+    if (reason && reason.startsWith("revoked:")) {
+        reason = reason.split(":")[1];
+}
+    if (!reason) return;
+
+    const messages = {
+        idle_timeout: "⏱ Bạn đã bị đăng xuất do không hoạt động quá 50 phút.",
+        another_login: "🚪 Tài khoản của bạn vừa được đăng nhập ở một thiết bị khác. Vui lòng đăng nhập lại nếu muốn tiếp tục.",
+        revoked_another_login: "🚪 Tài khoản của bạn vừa được đăng nhập ở một thiết bị khác. Vui lòng đăng nhập lại nếu muốn tiếp tục.",
+        force_logout: "🚪 Tài khoản đã bị đăng xuất từ xa.",
+        session_not_found: "🔒 Phiên đăng nhập không còn hợp lệ.",
+        missing_session: "🔒 Vui lòng đăng nhập lại.",
+    };
+    const msg = document.getElementById("message");
+    if (msg) {
+      msg.textContent = messages[reason] || "Phiên đăng nhập đã hết hạn.";
+      msg.className = "message error";
+    }
+  })();
+</script>
+</body>
+</html>

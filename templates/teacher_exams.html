@@ -1,0 +1,85 @@
+{% extends "teacher_base.html" %}
+{% block title %}Quản lý bài kiểm tra — Python Grader{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>📝 Quản lý bài kiểm tra</h1>
+    <p class="subtitle">Tạo bài kiểm tra, cài đặt thời gian và xem điểm</p>
+  </div>
+  <button id="createExamBtn" class="btn-primary">➕ Tạo bài kiểm tra</button>
+</div>
+
+<div id="message" class="message"></div>
+
+<div id="examList" class="chapter-grid">
+  <p class="loading">Đang tải...</p>
+</div>
+
+<!-- MODAL TẠO BÀI KIỂM TRA -->
+<div id="createExamModal" class="modal-overlay hidden">
+  <div class="modal-box exam-modal" role="dialog" aria-modal="true" aria-labelledby="createExamTitle">
+    <header class="exam-modal-header">
+      <div>
+        <span class="exam-eyebrow">THIẾT LẬP BÀI THI</span>
+        <h3 id="createExamTitle">Tạo bài kiểm tra</h3>
+        <p>Điền thông tin cơ bản để tạo phòng thi mới.</p>
+      </div>
+      <button type="button" class="exam-modal-close" id="closeCreateExamBtn" aria-label="Đóng">×</button>
+    </header>
+    <form id="createExamForm">
+      <div class="exam-form-grid">
+        <div class="exam-field exam-field-full">
+          <label for="newExamName">Tên bài kiểm tra <span>*</span></label>
+          <input type="text" id="newExamName" required minlength="3" maxlength="200" placeholder="Ví dụ: Kiểm tra giữa kỳ — Lập trình Python" autofocus>
+          <small>Tên này sẽ hiển thị trong danh sách bài thi của sinh viên.</small>
+        </div>
+
+        <div class="exam-field">
+          <label for="newExamStart">Bắt đầu</label>
+          <input type="datetime-local" id="newExamStart">
+          <small>Để trống nếu chưa cần đặt lịch.</small>
+        </div>
+
+        <div class="exam-field">
+          <label for="newExamEnd">Kết thúc</label>
+          <input type="datetime-local" id="newExamEnd">
+          <small>Thời điểm đóng phòng thi.</small>
+        </div>
+
+        <div class="exam-field">
+          <label for="newExamDuration">Thời lượng <span>*</span></label>
+          <div class="exam-input-suffix">
+            <input type="number" id="newExamDuration" required min="1" value="45">
+            <span>phút</span>
+          </div>
+        </div>
+        <div class="exam-field">
+          <label for="newExamMaxAttempts">Số lượt tối đa <span>*</span></label>
+          <div class="exam-input-suffix">
+            <input type="number" id="newExamMaxAttempts" min="1" value="1" required>
+            <span>lượt / SV</span>
+          </div>
+        </div>
+
+        <div class="exam-field exam-field-full">
+          <label for="newExamPassword">Mật khẩu phòng thi <span>*</span></label>
+          <input type="password" id="newExamPassword" required minlength="4" maxlength="128" autocomplete="new-password" placeholder="Tạo mật khẩu để chia sẻ với sinh viên">
+          <small>Mật khẩu chỉ có hiệu lực từ thời điểm bắt đầu bài thi.</small>
+        </div>
+      </div>
+
+      <p id="createExamMsg" class="message exam-form-message" role="status"></p>
+
+      <footer class="modal-actions exam-modal-actions">
+        <button type="button" id="cancelCreateBtn" class="btn-secondary">Huỷ</button>
+        <button type="submit" class="btn-primary">Tạo bài thi <span aria-hidden="true">→</span></button>
+      </footer>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/teacher_exams.js"></script>
+{% endblock %}

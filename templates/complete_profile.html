@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hoàn tất hồ sơ — Python Grader</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="auth-page">
+  <div class="auth-wrapper">
+    <div class="auth-box">
+      <div class="brand-mark" aria-hidden="true">⌘</div>
+      <h1 class="brand">Python Grader</h1>
+      <p class="auth-tagline">Hoàn thiện hồ sơ để bắt đầu học tập</p>
+      <h2>Hoàn tất hồ sơ sinh viên</h2>
+      <p class="hint">
+        Đây là lần đăng nhập đầu tiên. Vui lòng điền thông tin để tiếp tục.
+      </p>
+
+      <form id="profileForm">
+        <label for="full_name">Họ và tên</label>
+        <input type="text" id="full_name" placeholder="Nguyễn Văn A"
+               required minlength="2" maxlength="100" autofocus>
+
+        <label for="class_name">Lớp</label>
+        <input type="text" id="class_name" placeholder="CNTT-K65A"
+               required maxlength="50">
+
+        <label for="student_id">Mã sinh viên (MSV)</label>
+        <input type="text" id="student_id" placeholder="20231234"
+               required maxlength="50" pattern="[A-Za-z0-9_\-]+"
+               title="Chỉ chữ, số, gạch ngang, gạch dưới">
+
+        <button type="submit">Hoàn tất và vào Dashboard</button>
+      </form>
+      <p id="message" class="message"></p>
+
+      <p class="switch-link">
+        <a href="#" id="logoutLink">Đăng xuất</a>
+      </p>
+    </div>
+  </div>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/idle_timeout.js"></script>
+</body>
+</html>

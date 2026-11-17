@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Giáo viên — Python Grader{% endblock %}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/teacher.css">
+</head>
+<body>
+<div class="teacher-layout">
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="teacher-sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-icon">🐍</span>
+      <span class="brand-name">Python Grader</span>
+    </div>
+
+    <nav class="sidebar-menu">
+      <a href="/teacher/chapters"
+         class="menu-item {% if active_tab == 'chapters' %}active{% endif %}">
+        <span class="menu-icon">📚</span>
+        <span>Quản lý luyện tập chương</span>
+      </a>
+      <a href="/teacher/exams"
+         class="menu-item {% if active_tab == 'exams' %}active{% endif %}">
+        <span class="menu-icon">📝</span>
+        <span>Quản lý bài kiểm tra</span>
+      </a>
+      <a href="/teacher/students"
+         class="menu-item {% if active_tab == 'students' %}active{% endif %}">
+        <span class="menu-icon">👨‍🎓</span>
+        <span>Quản lý sinh viên</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="teacher-info">
+        <div class="teacher-avatar">{{ user.full_name[0] if user.full_name else '?' }}</div>
+        <div class="teacher-name">{{ user.full_name or user.email }}</div>
+      </div>
+      <button id="logoutBtn" class="btn-logout-small">Đăng xuất</button>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN ================= -->
+  <main class="teacher-main">
+    {% block content %}{% endblock %}
+  </main>
+
+</div>
+
+<script>
+  document.getElementById("logoutBtn").addEventListener("click", async () => {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    window.location.href = "/login";
+  });
+</script>
+<script src="/static/js/idle_timeout.js"></script>
+<script src="/static/js/datetime.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

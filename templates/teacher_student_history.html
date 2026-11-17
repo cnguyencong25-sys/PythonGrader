@@ -1,0 +1,43 @@
+{% extends "teacher_base.html" %}
+{% block title %}Lịch sử bài thi — {{ student.full_name or student.email }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <a href="/teacher/students" class="btn-back-inline">← Quay lại danh sách</a>
+    <h1>📊 Lịch sử bài thi sinh viên</h1>
+    <p class="subtitle">Xem kết quả, mã nguồn đã nộp và cấp quyền làm lại</p>
+  </div>
+</div>
+
+<section class="card-section student-profile-summary" data-student-user-id="{{ student.id }}">
+  <div class="student-summary-avatar" aria-hidden="true">{{ student.full_name[0] if student.full_name else '?' }}</div>
+  <div class="student-summary-grid">
+    <div><span>Họ và tên</span><strong>{{ student.full_name or 'Chưa cập nhật' }}</strong></div>
+    <div><span>Mã sinh viên</span><strong>{{ student.student_id or 'Chưa cập nhật' }}</strong></div>
+    <div><span>Lớp</span><strong>{{ student.class_name or 'Chưa cập nhật' }}</strong></div>
+    <div><span>Email</span><strong>{{ student.email }}</strong></div>
+  </div>
+</section>
+
+<div id="studentHistoryMessage" class="message" role="status"></div>
+<div id="studentExamHistory" class="student-attempt-list">
+  <p class="loading">Đang tải lịch sử bài thi...</p>
+</div>
+
+<div id="allowRetakeModal" class="modal-overlay hidden">
+  <section class="modal-box student-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="allowRetakeTitle">
+    <div class="student-confirm-icon student-confirm-warning" aria-hidden="true">↻</div>
+    <h2 id="allowRetakeTitle">Cho phép sinh viên làm lại?</h2>
+    <p>Hệ thống sẽ giữ nguyên lịch sử và mã nguồn cũ, đồng thời mở thêm một lượt làm bài mới cho đề thi này.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="cancelAllowRetake">Hủy</button>
+      <button type="button" class="btn-primary" id="confirmAllowRetake">Xác nhận cấp lượt</button>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/teacher_student_history.js"></script>
+{% endblock %}

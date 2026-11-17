@@ -1,0 +1,243 @@
+async function fetchJSON(url, opts = {}) {
+  opts.credentials = "include";
+  opts.headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
+  const res = await fetch(url, opts);
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, data };
+}
+
+const wsLayout = document.querySelector(".workspace-layout");
+const sessionId = wsLayout.dataset.sessionId;
+
+let exercises = [];
+let currentExIndex = -1;
+let editor = null;
+let submissionsData = {};
+let autoSaveTimeout = null;
+let timerInterval = null;
+
+// 1. KHỞI TẠO EDITOR
+function initEditor() {
+  editor = CodeMirror.fromTextArea(document.getElementById("codeEditor"), {
+    mode: "python", theme: "dracula", lineNumbers: true,
+    autoCloseBrackets: true, indentUnit: 4, tabSize: 4,
+  });
+  editor.setSize("100%", "100%");
+  editor.on("change", () => {
+    if (currentExIndex === -1) return;
+    clearTimeout(autoSaveTimeout);
+    autoSaveTimeout = setTimeout(autoSaveDraft, 1500);
+  });
+}
+
+// 2. LƯU NHÁP
+async function autoSaveDraft() {
+  if (currentExIndex === -1) return;
+  const ex = exercises[currentExIndex];
+  await fetchJSON(`/api/student/exam-sessions/${sessionId}/save-draft`, {
+    method: "POST", body: JSON.stringify({ exercise_id: ex.id, code: editor.getValue() })
+  });
+}
+
+// 3. LOAD WORKSPACE & BẮT ĐẦU ĐẾM NGƯỢC
+async function loadWorkspace() {
+  const { ok, data } = await fetchJSON(`/api/student/exam-sessions/${sessionId}`);
+  
+  if (!ok || !data.success) {
+    alert(data.message || "Lỗi tải dữ liệu hoặc đã hết giờ.");
+    window.location.href = "/student/exams";
+    return;
+  }
+
+  exercises = data.exam.exercises;
+  submissionsData = data.submissions || {};
+
+  renderExerciseGrid();
+  if (exercises.length > 0) selectExercise(0);
+
+  // Bắt đầu đếm ngược
+  startCountdown(data.remain_seconds);
+}
+
+function renderExerciseGrid() {
+  const grid = document.getElementById("exerciseGrid");
+  grid.innerHTML = exercises.map((ex, i) => {
+    let statusClass = "";
+    if (submissionsData[ex.id] && submissionsData[ex.id].status !== "pending") {
+      statusClass = submissionsData[ex.id].status;
+    }
+    return `<button class="ex-btn ${statusClass}" data-index="${i}">${i + 1}</button>`;
+  }).join("");
+
+  document.querySelectorAll(".ex-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      autoSaveDraft().then(() => selectExercise(parseInt(btn.dataset.index)));
+    });
+  });
+}
+
+function selectExercise(index) {
+  currentExIndex = index;
+  const ex = exercises[index];
+
+  document.querySelectorAll(".ex-btn").forEach(btn => btn.classList.remove("active"));
+  document.querySelector(`.ex-btn[data-index="${index}"]`).classList.add("active");
+
+  document.getElementById("problemBody").style.display = "flex";
+  document.getElementById("problemTitle").textContent = `Bài ${index + 1}: ${ex.title}`;
+  document.getElementById("problemDescription").textContent = ex.description;
+  document.getElementById("problemSampleInput").textContent = ex.sample_input || "(Không có)";
+  document.getElementById("problemSampleOutput").textContent = ex.sample_output || "(Không có)";
+
+  if (submissionsData[ex.id] && submissionsData[ex.id].code) {
+    editor.setValue(submissionsData[ex.id].code);
+    if (submissionsData[ex.id].status !== "pending") updateSubmitResultUI(submissionsData[ex.id]);
+    else document.getElementById("submitResult").textContent = "";
+  } else {
+    editor.setValue("def solve():\n    # Viết code của bạn ở đây\n    pass\n");
+    document.getElementById("submitResult").textContent = "";
+  }
+}
+
+function updateSubmitResultUI(result) {
+  const resEl = document.getElementById("submitResult");
+  if (result.status === "correct") {
+    resEl.textContent = `✅ Đúng hoàn toàn! (${result.score}/${result.max_score} điểm)`;
+    resEl.className = "submit-result correct";
+  } else if (result.status === "partial") {
+    resEl.textContent = `⚠️ Đúng một phần. (${result.score}/${result.max_score} điểm)`;
+    resEl.className = "submit-result partial";
+  } else {
+    resEl.textContent = `❌ Sai. (${result.score}/${result.max_score} điểm)`;
+    resEl.className = "submit-result wrong";
+  }
+}
+
+// 4. NỘP BÀI TỪNG CÂU
+document.getElementById("submitBtn").addEventListener("click", async () => {
+  if (currentExIndex === -1) return;
+  const ex = exercises[currentExIndex];
+  const btn = document.getElementById("submitBtn");
+  btn.disabled = true; btn.textContent = "⏳ Đang chấm...";
+
+  try {
+    const { ok, data } = await fetchJSON(`/api/student/exam-sessions/${sessionId}/submit`, {
+      method: "POST", body: JSON.stringify({ exercise_id: ex.id, code: editor.getValue() })
+    });
+
+    if (ok && data.success) {
+      const result = data.result;
+      submissionsData[ex.id] = result;
+      
+      const exBtn = document.querySelector(`.ex-btn[data-index="${currentExIndex}"]`);
+      exBtn.classList.remove("correct", "partial", "wrong");
+      if(result.status !== "pending") exBtn.classList.add(result.status);
+
+      updateSubmitResultUI(result);
+    } else {
+      alert(data.message || "Lỗi nộp bài.");
+    }
+  } catch (err) {
+    alert("Lỗi kết nối máy chủ.");
+  } finally {
+    btn.disabled = false; btn.textContent = "🚀 Nộp bài";
+  }
+});
+
+// 5. ĐỒNG HỒ ĐẾM NGƯỢC (QUAN TRỌNG)
+function startCountdown(totalSeconds) {
+  const timerText = document.getElementById("timeText");
+  const timerBox = document.getElementById("timerDisplay");
+  let remain = totalSeconds;
+
+  timerInterval = setInterval(() => {
+    remain--;
+    
+    // Format mm:ss
+    const m = Math.floor(remain / 60).toString().padStart(2, '0');
+    const s = (remain % 60).toString().padStart(2, '0');
+    timerText.textContent = `${m}:${s}`;
+
+    // Cảnh báo khi còn < 5 phút
+    if (remain <= 300) timerBox.classList.add("warning");
+
+    // Hết giờ -> Tự động nộp
+    if (remain <= 0) {
+      clearInterval(timerInterval);
+      alert("⏰ Đã hết thời gian làm bài! Hệ thống tự động nộp bài.");
+      forceFinishExam();
+    }
+  }, 1000);
+}
+
+// 6. KẾT THÚC BÀI THI
+function showFinishModal(isAuto = false) {
+  const listEl = document.getElementById("summaryList");
+  listEl.innerHTML = exercises.map((ex, i) => {
+    const isDone = submissionsData[ex.id] && submissionsData[ex.id].status !== "pending";
+    const statusText = isDone ? `Đã nộp (${submissionsData[ex.id].score} đ)` : "Chưa nộp";
+    const icon = isDone ? "✅" : "❌";
+    return `<div class="summary-item ${isDone ? 'done' : 'undone'}">
+        <span>${icon} Bài ${i + 1}: ${ex.title}</span>
+        <strong>${statusText}</strong>
+      </div>`;
+  }).join("");
+
+  if(isAuto) {
+    document.getElementById("modalTitle").textContent = "⏰ Đã hết giờ làm bài";
+    document.getElementById("cancelFinishBtn").style.display = "none"; // Không cho tiếp tục
+  } else {
+    document.getElementById("modalTitle").textContent = "🏁 Xác nhận nộp bài";
+    document.getElementById("cancelFinishBtn").style.display = "inline-block";
+  }
+
+  document.getElementById("summaryStep").style.display = "block";
+  document.getElementById("scoreStep").style.display = "none";
+  document.getElementById("finishModal").classList.remove("hidden");
+}
+
+document.getElementById("finishBtn").addEventListener("click", async () => {
+  await autoSaveDraft();
+  showFinishModal(false);
+});
+
+document.getElementById("cancelFinishBtn").addEventListener("click", () => {
+  document.getElementById("finishModal").classList.add("hidden");
+});
+
+document.getElementById("confirmFinishBtn").addEventListener("click", async () => {
+  await processFinish();
+});
+
+async function forceFinishExam() {
+  await autoSaveDraft();
+  showFinishModal(true);
+  await processFinish(); // Tự động gọi API finish
+}
+
+async function processFinish() {
+  let totalScore = 0, totalMax = 0;
+  exercises.forEach(ex => {
+    if (submissionsData[ex.id]) {
+      totalScore += submissionsData[ex.id].score;
+      totalMax += submissionsData[ex.id].max_score;
+    }
+  });
+
+  await fetchJSON(`/api/student/exam-sessions/${sessionId}/finish`, { method: "POST" });
+  clearInterval(timerInterval); // Dừng đồng hồ
+
+  document.getElementById("finalScore").textContent = totalScore;
+  document.getElementById("finalMaxScore").textContent = totalMax;
+  
+  document.getElementById("summaryStep").style.display = "none";
+  document.getElementById("scoreStep").style.display = "block";
+}
+
+document.getElementById("closeFinishBtn").addEventListener("click", () => {
+  window.location.href = "/student/exams";
+});
+
+// KHỞI ĐỘNG
+initEditor();
+loadWorkspace();

@@ -1,0 +1,53 @@
+{% extends "teacher_base.html" %}
+{% block title %}Quản lý chương — Python Grader{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>📚 Quản lý luyện tập chương</h1>
+    <p class="subtitle">Tạo chương, thêm bài tập và cấu hình chế độ hiển thị</p>
+  </div>
+  <button id="createChapterBtn" class="btn-primary">➕ Tạo chương mới</button>
+</div>
+
+<div id="message" class="message"></div>
+
+<!-- ============ DANH SÁCH CHƯƠNG ============ -->
+<div id="chapterList" class="chapter-grid">
+  <p class="loading">Đang tải...</p>
+</div>
+
+<!-- ============ MODAL: TẠO CHƯƠNG ============ -->
+<div id="createChapterModal" class="modal-overlay hidden">
+  <div class="modal-box exam-modal" role="dialog" aria-modal="true" aria-labelledby="createChapterTitle">
+    <header class="exam-modal-header">
+      <div>
+        <span class="exam-eyebrow">NGÂN HÀNG BÀI TẬP</span>
+        <h3 id="createChapterTitle">Tạo chương mới</h3>
+        <p>Đặt tên để tổ chức các bài tập theo nội dung môn học.</p>
+      </div>
+      <button type="button" class="exam-modal-close" id="closeCreateChapterBtn" aria-label="Đóng">×</button>
+    </header>
+    <form id="createChapterForm">
+      <div class="exam-form-grid">
+        <div class="exam-field exam-field-full">
+          <label for="newChapterName">Tên chương <span>*</span></label>
+          <input type="text" id="newChapterName" required minlength="3" maxlength="200"
+                 placeholder="Ví dụ: Chương 1 — Nhập môn Python" autofocus>
+        </div>
+      </div>
+
+      <p id="createChapterMsg" class="message exam-form-message" role="status"></p>
+
+      <footer class="modal-actions exam-modal-actions">
+        <button type="button" id="cancelCreateBtn" class="btn-secondary">Huỷ</button>
+        <button type="submit" class="btn-primary">Tạo chương <span aria-hidden="true">→</span></button>
+      </footer>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/teacher_chapters.js"></script>
+{% endblock %}
