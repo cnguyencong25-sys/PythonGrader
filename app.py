@@ -364,7 +364,7 @@ def create_app(test_config=None):
             return redirect("/teacher/dashboard")
         user = User.query.get(int(get_jwt_identity()))
         
-        sid = request.args.get("session_id")
+        sid = request.args.get("session_id", type=int)
         if not sid: return redirect("/student/chapters")
         
         session = ChapterSession.query.filter_by(id=sid, user_id=user.id).first()
@@ -392,7 +392,7 @@ def create_app(test_config=None):
             return redirect("/teacher/dashboard")
         user = User.query.get(int(get_jwt_identity()))
         
-        sid = request.args.get("session_id")
+        sid = request.args.get("session_id", type=int)
         if not sid: return redirect("/student/exams")
         
         session = ExamSession.query.filter_by(id=sid, user_id=user.id).first()
