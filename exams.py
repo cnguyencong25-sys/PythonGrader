@@ -1,7 +1,10 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import get_jwt_identity
 from extensions import db
-from models import Exam, ExamExercise, ExamChapterRule, PublicExamSession, ExamSession, Exercise
+from models import (
+    Exam, ExamExercise, ExamChapterRule, PublicExamSession, PublicExamSubmission,
+    ExamSession, ExamSubmission, ExamChapterSubmission, ExamRetakePermission, Exercise
+)
 from decorators import role_required
 from datetime import datetime, timedelta
 import json
@@ -171,7 +174,28 @@ def update_exam(eid):
 def delete_exam(eid):
     teacher_id = int(get_jwt_identity())
     exam = Exam.query.filter_by(id=eid, teacher_id=teacher_id).first()
-    if not exam: return _json_error("Không tìm thấy bài kiểm tra.", 404)
+    if not exam:
+        return _json_error("Không tìm thấy bài kiểm tra.", 404)
+
+    # 1. Xóa toàn bộ bài nộp và phiên thi của sinh viên đăng nhập thuộc bài kiểm tra này
+    session_ids = [s.id for s in ExamSession.query.filter_by(exam_id=exam.id).all()]
+    if session_ids:
+        ExamSubmission.query.filter(ExamSubmission.session_id.in_(session_ids)).delete(synchronize_session=False)
+        ExamChapterSubmission.query.filter(ExamChapterSubmission.session_id.in_(session_ids)).delete(synchronize_session=False)
+        ExamSession.query.filter(ExamSession.id.in_(session_ids)).delete(synchronize_session=False)
+
+    # 2. Xóa toàn bộ bài nộp và phiên thi công khai (nếu có)
+    public_session_ids = [ps.id for ps in PublicExamSession.query.filter_by(exam_id=exam.id).all()]
+    if public_session_ids:
+        PublicExamSubmission.query.filter(PublicExamSubmission.session_id.in_(public_session_ids)).delete(synchronize_session=False)
+        PublicExamSession.query.filter(PublicExamSession.id.in_(public_session_ids)).delete(synchronize_session=False)
+
+    # 3. Xóa lượt cấp thi lại, quy tắc chọn chương và bài tập riêng của bài kiểm tra này
+    ExamRetakePermission.query.filter_by(exam_id=exam.id).delete(synchronize_session=False)
+    ExamChapterRule.query.filter_by(exam_id=exam.id).delete(synchronize_session=False)
+    ExamExercise.query.filter_by(exam_id=exam.id).delete(synchronize_session=False)
+
+    # 4. Xóa bài kiểm tra chính
     db.session.delete(exam)
     db.session.commit()
     return jsonify({"success": True, "message": "Đã xoá bài kiểm tra."}), 200
