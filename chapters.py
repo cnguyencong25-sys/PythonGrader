@@ -1,7 +1,10 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import get_jwt_identity
 from extensions import db
-from models import Chapter, Exercise
+from models import (
+    Chapter, Exercise, ChapterSession, ChapterSubmission,
+    ExamChapterRule, ExamChapterSubmission
+)
 from decorators import role_required
 from sample_cases import sample_fields_from_payload
 
@@ -76,6 +79,24 @@ def update_chapter(cid):
 def delete_chapter(cid):
     c = Chapter.query.filter_by(id=cid, teacher_id=int(get_jwt_identity())).first()
     if not c: return _json_error("Không tìm thấy chương.", 404)
+
+    # 1. Xóa bài nộp liên quan đến các bài tập trong chương này trước
+    exercise_ids = [ex.id for ex in Exercise.query.filter_by(chapter_id=c.id).all()]
+    if exercise_ids:
+        ChapterSubmission.query.filter(ChapterSubmission.exercise_id.in_(exercise_ids)).delete(synchronize_session=False)
+        ExamChapterSubmission.query.filter(ExamChapterSubmission.exercise_id.in_(exercise_ids)).delete(synchronize_session=False)
+
+    # 2. Xóa các phiên luyện tập thuộc chương này
+    session_ids = [s.id for s in ChapterSession.query.filter_by(chapter_id=c.id).all()]
+    if session_ids:
+        ChapterSubmission.query.filter(ChapterSubmission.session_id.in_(session_ids)).delete(synchronize_session=False)
+        ChapterSession.query.filter(ChapterSession.id.in_(session_ids)).delete(synchronize_session=False)
+
+    # 3. Xóa quy tắc lấy đề từ chương (nếu có) và toàn bộ bài tập của chương
+    ExamChapterRule.query.filter_by(chapter_id=c.id).delete(synchronize_session=False)
+    Exercise.query.filter_by(chapter_id=c.id).delete(synchronize_session=False)
+
+    # 4. Xóa chương chính
     db.session.delete(c)
     db.session.commit()
     return jsonify({"success": True, "message": "Đã xoá chương."}), 200
@@ -153,6 +174,11 @@ def update_exercise(eid):
 def delete_exercise(eid):
     ex = Exercise.query.get(eid)
     if not ex or ex.chapter.teacher_id != int(get_jwt_identity()): return _json_error("Không có quyền.", 403)
+
+    # Xóa các bài nộp trỏ tới bài tập này trước
+    ChapterSubmission.query.filter_by(exercise_id=ex.id).delete(synchronize_session=False)
+    ExamChapterSubmission.query.filter_by(exercise_id=ex.id).delete(synchronize_session=False)
+
     db.session.delete(ex)
     db.session.commit()
     return jsonify({"success": True}), 200
