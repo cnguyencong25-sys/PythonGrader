@@ -1,5 +1,6 @@
 import secrets
 import hashlib
+import json
 from extensions import db, bcrypt
 from sample_cases import sample_examples_from_values
 from time_utils import (
@@ -11,6 +12,19 @@ from time_utils import (
 )
 
 VN_TZ = VIETNAM_TZ
+
+
+def _normalized_total_score(submissions, question_count):
+    if not question_count:
+        return 0.0
+    score_per_question = 10.0 / question_count
+    total = sum(
+        (submission.score / submission.max_score) * score_per_question
+        for submission in submissions
+        if submission.max_score > 0
+    )
+    return round(min(total, 10.0), 2)
+
 
 # ============================================================
 # 1. NGƯỜI DÙNG
@@ -40,6 +54,31 @@ class User(db.Model):
             "full_name": self.full_name, "class_name": self.class_name,
             "student_id": self.student_id, "profile_completed": self.profile_completed,
         }
+
+
+class Announcement(db.Model):
+    __tablename__ = "announcements"
+    __table_args__ = {"sqlite_autoincrement": True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=utc_now_naive, index=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "content": self.content,
+            "created_at": utc_iso(self.created_at),
+        }
+
+
+class AnnouncementReadState(db.Model):
+    __tablename__ = "announcement_read_states"
+
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    last_read_announcement_id = db.Column(db.Integer, nullable=False, default=0)
 
 
 # ============================================================
@@ -214,14 +253,15 @@ class PublicExamSession(db.Model):
     submissions = db.relationship("PublicExamSubmission", backref="session", cascade="all, delete-orphan")
 
     def to_dict(self):
+        question_count = len(json.loads(self.question_ids or "[]"))
         return {
             "id": self.id,
             "started_at": vietnam_iso(self.started_at),
             "finished_at": vietnam_iso(self.finished_at),
             "is_finalized": self.is_finalized,
             "violation_count": self.violation_count,
-            "total_score": sum(s.score for s in self.submissions),
-            "total_max": sum(s.max_score for s in self.submissions),
+            "total_score": _normalized_total_score(self.submissions, question_count),
+            "total_max": 10.0 if question_count else 0.0,
         }
 
     def verify_token(self, token):
@@ -302,8 +342,10 @@ class ChapterSession(db.Model):
     submissions = db.relationship("ChapterSubmission", backref="session", cascade="all, delete-orphan")
 
     def to_dict(self):
-        total_score = sum(s.score for s in self.submissions)
-        total_max = sum(s.max_score for s in self.submissions) if self.submissions else 0
+        chapter_exercises = self.chapter.exercises if self.chapter else []
+        question_count = sum(1 for exercise in chapter_exercises if exercise.is_published)
+        total_score = _normalized_total_score(self.submissions, question_count)
+        total_max = 10.0 if question_count else 0.0
         return {
             "id": self.id, "started_at": utc_iso(self.started_at),
             "finished_at": utc_iso(self.finished_at),
@@ -348,8 +390,17 @@ class ExamSession(db.Model):
 
     def to_dict(self):
         submissions = [*self.submissions, *self.chapter_submissions]
-        total_score = sum(s.score for s in submissions)
-        total_max = sum(s.max_score for s in submissions) if submissions else 0
+        try:
+            question_count = len(json.loads(self.question_ids or "[]"))
+        except (TypeError, ValueError):
+            question_count = 0
+        if not question_count:
+            question_count = sum(
+                1 for exercise in (self.exam.exercises if self.exam else [])
+                if exercise.is_published
+            )
+        total_score = _normalized_total_score(submissions, question_count)
+        total_max = 10.0 if question_count else 0.0
         return {
             "id": self.id, "started_at": vietnam_iso(self.started_at),
             "finished_at": vietnam_iso(self.finished_at),

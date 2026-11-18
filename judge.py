@@ -32,13 +32,33 @@ def run_python_code(code: str, input_data: str, timeout: int = 2) -> tuple[str, 
         if os.path.exists(code_file):
             os.remove(code_file)
 
-def evaluate_submission(student_code: str, generator_code: str, solution_code: str, num_tests: int) -> dict:
+def evaluate_submission(
+    student_code: str,
+    generator_code: str,
+    solution_code: str,
+    num_tests: int,
+    max_score: float = 10.0,
+) -> dict:
     """
     Chấm điểm bài làm của sinh viên.
     Trả về dict: { status: 'correct'|'partial'|'wrong', score: float, max_score: float }
     """
+    if not student_code or not student_code.strip():
+        return {
+            "status": "wrong",
+            "score": 0.0,
+            "max_score": round(max_score, 6),
+            "passed": 0,
+            "total": num_tests,
+        }
+
     if not generator_code or not solution_code:
-        return {"status": "wrong", "score": 0.0, "max_score": 10.0, "message": "Giáo viên chưa cấu hình Code Generator/Solution."}
+        return {
+            "status": "wrong",
+            "score": 0.0,
+            "max_score": max_score,
+            "message": "Giáo viên chưa cấu hình Code Generator/Solution.",
+        }
 
     passed_tests = 0
     
@@ -71,7 +91,6 @@ def evaluate_submission(student_code: str, generator_code: str, solution_code: s
             passed_tests += 1
 
     # Tính điểm
-    max_score = 10.0
     if passed_tests == num_tests:
         status = "correct"
         score = max_score
@@ -84,8 +103,8 @@ def evaluate_submission(student_code: str, generator_code: str, solution_code: s
 
     return {
         "status": status,
-        "score": round(score, 2),
-        "max_score": max_score,
+        "score": round(score, 6),
+        "max_score": round(max_score, 6),
         "passed": passed_tests,
         "total": num_tests
     }

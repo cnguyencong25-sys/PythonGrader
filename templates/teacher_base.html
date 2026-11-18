@@ -7,6 +7,7 @@
   <link rel="icon" type="image/png" href="/static/img/Vimaru.png">
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="stylesheet" href="/static/css/teacher.css">
+  <link rel="stylesheet" href="/static/css/announcements.css">
 </head>
 <body>
 <div class="teacher-layout">
@@ -34,6 +35,11 @@
         <span class="menu-icon">👨‍🎓</span>
         <span>Quản lý sinh viên</span>
       </a>
+      <button id="announcementToggle" class="menu-item announcement-toggle"
+              type="button" aria-haspopup="dialog" aria-expanded="false">
+        <span class="menu-icon">🔔</span>
+        <span>Thông báo</span>
+      </button>
     </nav>
 
     <div class="sidebar-footer">
@@ -52,12 +58,38 @@
 
 </div>
 
+<div id="announcementModal" class="announcement-overlay" data-role="teacher" hidden>
+  <section class="announcement-dialog" role="dialog" aria-modal="true"
+           aria-labelledby="announcementTitle">
+    <header class="announcement-header">
+      <div>
+        <h2 id="announcementTitle">Thông báo hệ thống</h2>
+        <p>Thông báo được lưu trong 24 giờ gần nhất.</p>
+      </div>
+      <button id="announcementClose" class="announcement-close" type="button"
+              aria-label="Đóng thông báo">×</button>
+    </header>
+    <div id="announcementError" class="announcement-error" role="alert" hidden></div>
+    <form id="announcementForm" class="announcement-compose">
+      <label for="announcementContent">Nội dung gửi tới toàn bộ sinh viên</label>
+      <textarea id="announcementContent" maxlength="4000" rows="3" required
+                placeholder="Nhập nội dung thông báo..."></textarea>
+      <div class="announcement-compose-footer">
+        <span>Tối đa 4.000 ký tự</span>
+        <button id="announcementSend" type="submit">Gửi thông báo</button>
+      </div>
+    </form>
+    <div id="announcementList" class="announcement-list" aria-live="polite"></div>
+  </section>
+</div>
+
 <script>
   document.getElementById("logoutBtn").addEventListener("click", async () => {
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
     window.location.href = "/login";
   });
 </script>
+<script src="/static/js/announcements.js"></script>
 <script src="/static/js/idle_timeout.js"></script>
 <script src="/static/js/datetime.js"></script>
 {% block scripts %}{% endblock %}

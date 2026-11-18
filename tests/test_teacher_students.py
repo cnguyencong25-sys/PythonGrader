@@ -163,6 +163,12 @@ class TeacherStudentManagementTests(unittest.TestCase):
         )
         self.assertEqual(student_score["time_taken"], "0:01:00")
         self.assertTrue(student_score["started_at"].endswith("+07:00"))
+        self.assertEqual(
+            student_score["submissions"][0]["question_key"],
+            f"exam-{self.exam_exercise_id}",
+        )
+        self.assertEqual(student_score["submissions"][0]["title"], "Câu 1")
+        self.assertEqual(student_score["submissions"][0]["code"], "print('old')")
 
         granted = self.client.post(
             f"/api/teacher/students/{self.student_id}/exams/{self.exam_id}/allow-retake"

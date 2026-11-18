@@ -415,8 +415,10 @@ body {
 .summary-item {
   display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee;
 }
-.summary-item.done { color: #27ae60; }
-.summary-item.undone { color: #e74c3c; }
+.summary-item.status-correct { color: #18864b; }
+.summary-item.status-partial { color: #a96800; }
+.summary-item.status-wrong { color: #c0392b; }
+.summary-item.status-pending { color: #687386; }
 .total-score-box {
   text-align: center; padding: 20px; background: #eef1ff; border-radius: 8px;
   margin-bottom: 20px; font-size: 24px; font-weight: bold; color: #667eea;
@@ -2048,6 +2050,11 @@ html[data-student-theme="dark"] .student-layout .summary-item {
   border-color: #303b51;
   color: #d0d8e6;
 }
+
+html[data-student-theme="dark"] .student-layout .summary-item.status-correct { color: #73d49b; }
+html[data-student-theme="dark"] .student-layout .summary-item.status-partial { color: #f2bf65; }
+html[data-student-theme="dark"] .student-layout .summary-item.status-wrong { color: #ff8e8e; }
+html[data-student-theme="dark"] .student-layout .summary-item.status-pending { color: #aab5c7; }
 
 html[data-student-theme="dark"] .student-layout .total-score-box,
 html[data-student-theme="dark"] .student-layout .exam-result-score {

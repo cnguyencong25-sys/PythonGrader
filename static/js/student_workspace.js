@@ -169,13 +169,20 @@ document.getElementById("finishBtn").addEventListener("click", async () => {
   const listEl = document.getElementById("summaryList");
   
   listEl.innerHTML = exercises.map((ex, i) => {
-    const isDone = submissionsData[ex.id] && submissionsData[ex.id].status !== "pending";
-    const statusText = isDone ? `Đã nộp (${submissionsData[ex.id].score} đ)` : "Chưa nộp";
-    const className = isDone ? "done" : "undone";
-    const icon = isDone ? "✅" : "❌";
+    const submission = submissionsData[ex.id];
+    const status = submission && ["correct", "partial", "wrong"].includes(submission.status)
+      ? submission.status
+      : "pending";
+    const statusText = {
+      correct: "Đúng",
+      partial: "Đúng một phần",
+      wrong: "Sai",
+      pending: "Chưa nộp",
+    }[status];
+    const icon = { correct: "✅", partial: "⚠️", wrong: "❌", pending: "⏳" }[status];
     
     return `
-      <div class="summary-item ${className}">
+      <div class="summary-item status-${status}">
         <span>${icon} Bài ${i + 1}: ${ex.title}</span>
         <strong>${statusText}</strong>
       </div>
@@ -188,20 +195,21 @@ document.getElementById("finishBtn").addEventListener("click", async () => {
 });
 
 document.getElementById("confirmFinishBtn").addEventListener("click", async () => {
-  let totalScore = 0, totalMax = 0;
+  let totalScore = 0;
+  const maxScorePerQuestion = exercises.length ? 10 / exercises.length : 0;
   
   exercises.forEach(ex => {
-    if (submissionsData[ex.id]) {
-      totalScore += submissionsData[ex.id].score;
-      totalMax += submissionsData[ex.id].max_score;
+    const submission = submissionsData[ex.id];
+    if (submission && submission.status !== "pending" && submission.max_score > 0) {
+      totalScore += (submission.score / submission.max_score) * maxScorePerQuestion;
     }
   });
 
   // Gọi API đánh dấu kết thúc
   await fetchJSON(`/api/student/sessions/${sessionId}/finish`, { method: "POST" });
 
-  document.getElementById("finalScore").textContent = totalScore;
-  document.getElementById("finalMaxScore").textContent = totalMax;
+  document.getElementById("finalScore").textContent = Math.min(10, totalScore).toFixed(2);
+  document.getElementById("finalMaxScore").textContent = exercises.length ? "10" : "0";
   
   document.getElementById("summaryStep").style.display = "none";
   document.getElementById("scoreStep").style.display = "block";

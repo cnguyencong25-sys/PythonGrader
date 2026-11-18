@@ -4,6 +4,7 @@ from flask_jwt_extended import get_jwt_identity
 from decorators import role_required
 from extensions import db
 from models import (
+    AnnouncementReadState,
     ChapterSession,
     Exam,
     ExamRetakePermission,
@@ -202,6 +203,9 @@ def delete_student(student_user_id):
 
     LoginLog.query.filter_by(user_id=student.id).delete(synchronize_session=False)
     UserSession.query.filter_by(user_id=student.id).delete(synchronize_session=False)
+    AnnouncementReadState.query.filter_by(user_id=student.id).delete(
+        synchronize_session=False
+    )
     db.session.delete(student)
     db.session.commit()
     return jsonify({"success": True, "message": "Đã xóa tài khoản sinh viên và dữ liệu liên quan."}), 200

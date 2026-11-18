@@ -1440,7 +1440,109 @@ body {
 }
 
 .submission-detail td {
+  padding: 18px !important;
   background: #f7f8fc;
+}
+
+.score-submission-review {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 18px;
+  border: 1px solid #e3e8f1;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.submission-review-heading,
+.submission-review-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.submission-review-heading {
+  margin-bottom: 12px;
+  color: #23304a;
+}
+
+.submission-review-heading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.submission-review-heading > div span {
+  color: #8993a7;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.submission-review-heading label {
+  color: #59667d;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.submission-question-select {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 36px 9px 12px;
+  border: 1px solid #d6deeb;
+  border-radius: 9px;
+  background: #fff;
+  color: #27344e;
+  font: inherit;
+}
+
+.submission-question-select:focus {
+  outline: 2px solid rgba(102, 126, 234, 0.2);
+  border-color: #667eea;
+}
+
+.submission-review-meta {
+  justify-content: flex-start;
+  margin-top: 12px;
+  color: #6f7b91;
+  font-size: 12px;
+}
+
+.submission-review-status {
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #eef1f6;
+  color: #59667d;
+  font-size: 12px;
+}
+
+.submission-review-status.status-correct {
+  background: #e7f7ee;
+  color: #18794e;
+}
+
+.submission-review-status.status-partial {
+  background: #fff4dc;
+  color: #996200;
+}
+
+.submission-review-status.status-wrong {
+  background: #ffebeb;
+  color: #b4232d;
+}
+
+.score-submission-review .submission-code {
+  min-height: 120px;
+  max-height: 420px;
+  margin: 10px 0 0;
+  font-size: 13px;
+}
+
+.submission-review-empty {
+  padding: 16px;
+  border: 1px dashed #ccd4e2;
+  border-radius: 10px;
+  color: #68758c;
+  text-align: center;
 }
 
 .teacher-exercise-grid {

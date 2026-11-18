@@ -166,13 +166,20 @@ def submit_code(sid):
 
     exercise = Exercise.query.get(exercise_id)
     if not exercise: return _json_error("Không tìm thấy bài tập.", 404)
+    question_count = sum(
+        1 for chapter_exercise in session.chapter.exercises
+        if chapter_exercise.is_published
+    )
+    if not question_count:
+        return _json_error("Chương này chưa có bài tập được công bố.", 400)
 
     # ⭐ GỌI MODULE CHẤM ĐIỂM TỰ ĐỘNG
     result = evaluate_submission(
         student_code=code,
         generator_code=exercise.generator_code,
         solution_code=exercise.solution_code,
-        num_tests=exercise.num_test_cases
+        num_tests=exercise.num_test_cases,
+        max_score=10.0 / question_count,
     )
 
     sub = ChapterSubmission.query.filter_by(session_id=sid, exercise_id=exercise_id).first()
@@ -569,7 +576,8 @@ def submit_exam_code(sid):
         student_code=code,
         generator_code=exercise.generator_code,
         solution_code=exercise.solution_code,
-        num_tests=exercise.num_test_cases
+        num_tests=exercise.num_test_cases,
+        max_score=10.0 / len(question_keys),
     )
 
     if is_chapter_question:
@@ -684,6 +692,9 @@ def _issue_public_session_token(session):
 
 def _grade_public_drafts(session):
     question_keys = json.loads(session.question_ids or "[]")
+    if not question_keys:
+        return
+    max_score = 10.0 / len(question_keys)
     for question_key in question_keys:
         submission = PublicExamSubmission.query.filter_by(
             session_id=session.id, question_key=question_key
@@ -699,6 +710,7 @@ def _grade_public_drafts(session):
             generator_code=question.generator_code,
             solution_code=question.solution_code,
             num_tests=question.num_test_cases,
+            max_score=max_score,
         )
         submission.status = result["status"]
         submission.score = result["score"]
@@ -862,7 +874,16 @@ def submit_public_answer(session_id):
     question = _public_question(question_key)
     if not question:
         return _json_error("Không tìm thấy câu hỏi.", 404)
-    result = evaluate_submission(code, question.generator_code, question.solution_code, question.num_test_cases)
+    question_count = len(json.loads(session.question_ids or "[]"))
+    if not question_count:
+        return _json_error("Bài thi chưa có câu hỏi.", 400)
+    result = evaluate_submission(
+        code,
+        question.generator_code,
+        question.solution_code,
+        question.num_test_cases,
+        max_score=10.0 / question_count,
+    )
     submission = PublicExamSubmission.query.filter_by(session_id=session.id, question_key=question_key).first()
     if not submission:
         submission = PublicExamSubmission(session_id=session.id, question_key=question_key)

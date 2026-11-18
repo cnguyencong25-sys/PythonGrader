@@ -19,6 +19,7 @@ from chapters import chapters_bp
 from exams import exams_bp
 from student_api import student_api_bp, public_exam_bp
 from teacher_students import teacher_students_bp
+from announcements import announcements_bp
 from session_manager import (
     verify_session, list_active_sessions, count_active_sessions,
     IDLE_TIMEOUT_MINUTES
@@ -44,6 +45,7 @@ def create_app(test_config=None):
     app.register_blueprint(student_api_bp)
     app.register_blueprint(public_exam_bp)
     app.register_blueprint(teacher_students_bp)
+    app.register_blueprint(announcements_bp)
 
     # ============================================================
     # HOOK: kiểm tra session MỖI REQUEST có auth (Single-session)

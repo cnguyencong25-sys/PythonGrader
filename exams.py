@@ -364,6 +364,96 @@ def _format_time_taken(started_at, finished_at):
     return str(timedelta(seconds=seconds)) if seconds is not None else ""
 
 
+def _submission_review_item(submission, question_key, title):
+    if submission.status == "pending" or not submission.code.strip():
+        return None
+    return {
+        "question_key": question_key,
+        "title": title,
+        "code": submission.code,
+        "status": submission.status,
+        "score": submission.score,
+        "max_score": submission.max_score,
+    }
+
+
+def _authenticated_review_submissions(session):
+    submissions_by_key = {}
+    for submission in session.submissions:
+        question_key = f"exam-{submission.exercise_id}"
+        submissions_by_key[question_key] = _submission_review_item(
+            submission,
+            question_key,
+            submission.exercise.title if submission.exercise else question_key,
+        )
+    for submission in session.chapter_submissions:
+        question_key = f"chapter-{submission.exercise_id}"
+        submissions_by_key[question_key] = _submission_review_item(
+            submission,
+            question_key,
+            submission.exercise.title if submission.exercise else question_key,
+        )
+
+    try:
+        question_keys = json.loads(session.question_ids or "[]")
+    except (TypeError, ValueError):
+        question_keys = []
+    if not isinstance(question_keys, list):
+        question_keys = []
+    ordered_keys = [
+        key for key in question_keys
+        if isinstance(key, str) and key in submissions_by_key
+    ]
+    ordered_keys.extend(key for key in submissions_by_key if key not in ordered_keys)
+    return [
+        submissions_by_key[key]
+        for key in ordered_keys
+        if submissions_by_key[key] is not None
+    ]
+
+
+def _public_review_submissions(session):
+    submissions_by_key = {
+        submission.question_key: submission
+        for submission in session.submissions
+    }
+    try:
+        question_keys = json.loads(session.question_ids or "[]")
+    except (TypeError, ValueError):
+        question_keys = []
+    if not isinstance(question_keys, list):
+        question_keys = []
+    ordered_keys = [
+        key for key in question_keys
+        if isinstance(key, str) and key in submissions_by_key
+    ]
+    ordered_keys.extend(key for key in submissions_by_key if key not in ordered_keys)
+
+    review_submissions = []
+    for question_key in ordered_keys:
+        submission = submissions_by_key[question_key]
+        kind, _, raw_id = question_key.partition("-")
+        try:
+            question_id = int(raw_id)
+        except ValueError:
+            question_id = None
+        question = None
+        if question_id is not None and kind == "exam":
+            question = ExamExercise.query.filter_by(
+                id=question_id, exam_id=session.exam_id
+            ).first()
+        elif question_id is not None and kind == "chapter":
+            question = Exercise.query.get(question_id)
+        item = _submission_review_item(
+            submission,
+            question_key,
+            question.title if question else question_key,
+        )
+        if item is not None:
+            review_submissions.append(item)
+    return review_submissions
+
+
 def _filtered_score_rows(exam_id):
     rows = []
     for session in PublicExamSession.query.filter_by(exam_id=exam_id, is_finalized=True).all():
@@ -372,6 +462,7 @@ def _filtered_score_rows(exam_id):
         ):
             continue
         totals = session.to_dict()
+        review_submissions = _public_review_submissions(session)
         rows.append({
             "session_id": session.id, "student_id": session.student_id,
             "full_name": session.full_name, "class_name": session.class_name,
@@ -383,10 +474,10 @@ def _filtered_score_rows(exam_id):
             "finished_at": vietnam_iso(session.finished_at),
             "email": "",
             "status": (
-                "Chưa nộp" if not any(submission.code.strip() for submission in session.submissions)
+                "Chưa nộp" if not review_submissions
                 else "Nghi vấn gian lận" if session.violation_count else "Hoàn thành"
             ),
-            "submissions": [submission.to_dict() for submission in session.submissions],
+            "submissions": review_submissions,
         })
     for session in ExamSession.query.filter_by(exam_id=exam_id, is_finalized=True).all():
         if not session.user:
@@ -397,6 +488,7 @@ def _filtered_score_rows(exam_id):
         if not _matches_score_filters(session.started_at, class_name, student_id, full_name):
             continue
         totals = session.to_dict()
+        review_submissions = _authenticated_review_submissions(session)
         rows.append({
             "session_id": session.id, "student_id": student_id, "full_name": full_name,
             "class_name": class_name, "score": totals["total_score"], "max_score": totals["total_max"],
@@ -406,10 +498,10 @@ def _filtered_score_rows(exam_id):
             "finished_at": vietnam_iso(session.finished_at),
             "email": session.user.email,
             "status": (
-                "Chưa nộp" if not any(submission.code.strip() for submission in session.submissions)
+                "Chưa nộp" if not review_submissions
                 else "Hoàn thành"
             ),
-            "submissions": [submission.to_dict() for submission in session.submissions],
+            "submissions": review_submissions,
         })
     rows.sort(key=lambda row: row["started_at"], reverse=True)
     return rows

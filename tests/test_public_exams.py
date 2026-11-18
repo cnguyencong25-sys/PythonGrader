@@ -115,6 +115,63 @@ class PublicExamFlowTests(unittest.TestCase):
         question = readonly_data.json["exam"]["exercises"][0]
         self.assertEqual(question["output_format"], "In số nguyên trên một dòng.")
         self.assertEqual(question["constraints"], "1 <= n <= 100")
+        with self.app.app_context():
+            teacher = User.query.filter_by(email="teacher-test@example.invalid").first()
+            exam_id = Exam.query.filter_by(access_code=self.access_code).first().id
+            teacher_token = create_access_token(
+                identity=str(teacher.id),
+                additional_claims={"role": "teacher"},
+            )
+        self.client.set_cookie("access_token_cookie", teacher_token)
+        score_rows = self.client.get(f"/api/exams/{exam_id}/scores")
+        public_row = score_rows.json["scores"][0]
+        self.assertEqual(public_row["submissions"][0]["question_key"], "exam-1")
+        self.assertEqual(public_row["submissions"][0]["title"], "Câu 1")
+        self.assertEqual(public_row["submissions"][0]["code"], "print(1)")
+
+    def test_public_exam_questions_share_ten_points(self):
+        with self.app.app_context():
+            exam = Exam.query.filter_by(access_code=self.access_code).first()
+            db.session.add(ExamExercise(
+                exam_id=exam.id,
+                title="Câu 2",
+                description="In số 1",
+                generator_code="print(1)",
+                solution_code="print(1)",
+                num_test_cases=1,
+                is_published=True,
+            ))
+            db.session.commit()
+
+        started = self.start_exam()
+        session_id = started.json["session_id"]
+        headers = {"X-Exam-Session-Token": started.json["session_token"]}
+        workspace = self.client.get(
+            f"/api/public-exams/sessions/{session_id}", headers=headers
+        )
+        self.assertEqual(len(workspace.json["exam"]["exercises"]), 2)
+        question_ids = [question["id"] for question in workspace.json["exam"]["exercises"]]
+
+        correct = self.client.post(
+            f"/api/public-exams/sessions/{session_id}/submit",
+            json={"question_id": question_ids[0], "code": "print(1)"},
+            headers=headers,
+        )
+        wrong = self.client.post(
+            f"/api/public-exams/sessions/{session_id}/submit",
+            json={"question_id": question_ids[1], "code": "print(0)"},
+            headers=headers,
+        )
+        self.assertEqual(correct.json["result"]["max_score"], 5.0)
+        self.assertEqual(wrong.json["result"]["max_score"], 5.0)
+        self.assertEqual(correct.json["result"]["score"], 5.0)
+        self.assertEqual(wrong.json["result"]["score"], 0.0)
+
+        finished = self.client.post(
+            f"/api/public-exams/sessions/{session_id}/finish", headers=headers
+        )
+        self.assertEqual(finished.json["result"]["total_score"], 5.0)
+        self.assertEqual(finished.json["result"]["total_max"], 10.0)
 
     def test_exam_link_cannot_be_used_before_start_time_or_without_password(self):
         with self.app.app_context():
@@ -437,10 +494,19 @@ class PublicExamFlowTests(unittest.TestCase):
                 num_test_cases=1,
                 is_published=True,
             ))
+            db.session.add(Exercise(
+                chapter_id=chapter.id,
+                title="Câu thứ hai lấy từ chương",
+                description="In số 1",
+                generator_code="print(1)",
+                solution_code="print(1)",
+                num_test_cases=1,
+                is_published=True,
+            ))
             db.session.add(ExamChapterRule(
                 exam_id=exam.id,
                 chapter_id=chapter.id,
-                question_count=1,
+                question_count=2,
             ))
             db.session.flush()
             student_id = student.id
@@ -462,7 +528,7 @@ class PublicExamFlowTests(unittest.TestCase):
         workspace = self.client.get(f"/api/student/exam-sessions/{session_id}")
         self.assertEqual(workspace.status_code, 200)
         questions = workspace.json["exam"]["exercises"]
-        self.assertEqual(len(questions), 1)
+        self.assertEqual(len(questions), 2)
         self.assertTrue(questions[0]["id"].startswith("chapter-"))
 
         submission = self.client.post(
@@ -471,8 +537,11 @@ class PublicExamFlowTests(unittest.TestCase):
         )
         self.assertEqual(submission.status_code, 200)
         self.assertEqual(submission.json["result"]["status"], "correct")
+        self.assertEqual(submission.json["result"]["max_score"], 5.0)
 
         with self.app.app_context():
+            exam_session = ExamSession.query.filter_by(id=session_id).first()
+            self.assertEqual(exam_session.to_dict()["total_max"], 10.0)
             self.assertEqual(
                 ExamSession.query.filter_by(id=session_id, user_id=student_id).count(),
                 1,
@@ -480,7 +549,7 @@ class PublicExamFlowTests(unittest.TestCase):
 
         exam_list = self.client.get("/api/student/exams")
         self.assertEqual(exam_list.status_code, 200)
-        self.assertEqual(exam_list.json["exams"][0]["exercise_count"], 1)
+        self.assertEqual(exam_list.json["exams"][0]["exercise_count"], 2)
 
         resumed_workspace = self.client.get(
             f"/api/student/exam-sessions/{session_id}"
@@ -493,6 +562,10 @@ class PublicExamFlowTests(unittest.TestCase):
             resumed_workspace.json["submissions"][questions[0]["id"]]["status"],
             "correct",
         )
+        finished = self.client.post(
+            f"/api/student/exam-sessions/{session_id}/finish"
+        )
+        self.assertEqual(finished.status_code, 200)
 
         with self.app.app_context():
             teacher = User.query.filter_by(email="teacher-test@example.invalid").first()
@@ -501,6 +574,23 @@ class PublicExamFlowTests(unittest.TestCase):
                 additional_claims={"role": "teacher"},
             )
         self.client.set_cookie("access_token_cookie", teacher_token)
+        score_rows = self.client.get(f"/api/exams/{exam_id}/scores")
+        self.assertEqual(score_rows.status_code, 200)
+        student_score = next(
+            row for row in score_rows.json["scores"]
+            if row["session_id"] == session_id
+        )
+        self.assertEqual(student_score["status"], "Hoàn thành")
+        self.assertEqual(len(student_score["submissions"]), 1)
+        self.assertEqual(
+            student_score["submissions"][0]["question_key"],
+            questions[0]["id"],
+        )
+        self.assertEqual(
+            student_score["submissions"][0]["title"],
+            questions[0]["title"],
+        )
+        self.assertEqual(student_score["submissions"][0]["code"], "print(1)")
         history = self.client.get(
             f"/api/teacher/students/{student_id}/exam-history"
         )

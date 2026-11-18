@@ -8,6 +8,7 @@
   <script src="/static/js/student_theme.js"></script>
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="stylesheet" href="/static/css/student.css">
+  <link rel="stylesheet" href="/static/css/announcements.css">
   {% block head %}{% endblock %}
 </head>
 <body class="student-body-fix">
@@ -33,6 +34,12 @@
         <span class="menu-icon">👤</span>
         <span>Thông tin sinh viên</span>
       </a>
+      <button id="announcementToggle" class="menu-item announcement-toggle"
+              type="button" aria-haspopup="dialog" aria-expanded="false">
+        <span class="menu-icon">🔔</span>
+        <span>Thông báo</span>
+        <span id="announcementBadge" class="announcement-badge" aria-live="polite" hidden></span>
+      </button>
     </nav>
 
     <div class="student-sidebar-appearance">
@@ -59,12 +66,29 @@
 
 </div>
 
+<div id="announcementModal" class="announcement-overlay" data-role="student" hidden>
+  <section class="announcement-dialog" role="dialog" aria-modal="true"
+           aria-labelledby="announcementTitle">
+    <header class="announcement-header">
+      <div>
+        <h2 id="announcementTitle">Thông báo hệ thống</h2>
+        <p>Thông báo từ giáo viên trong 24 giờ gần nhất.</p>
+      </div>
+      <button id="announcementClose" class="announcement-close" type="button"
+              aria-label="Đóng thông báo">×</button>
+    </header>
+    <div id="announcementError" class="announcement-error" role="alert" hidden></div>
+    <div id="announcementList" class="announcement-list" aria-live="polite"></div>
+  </section>
+</div>
+
 <script>
   document.getElementById("logoutBtn").addEventListener("click", async () => {
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
     window.location.href = "/login";
   });
 </script>
+<script src="/static/js/announcements.js"></script>
 <script src="/static/js/idle_timeout.js"></script>
 <script src="/static/js/datetime.js"></script>
 {% block scripts %}{% endblock %}
