@@ -4,8 +4,8 @@
 {% block content %}
 <div class="page-header">
   <div>
-    <a href="/teacher/exams/{{ exam.id }}/edit" class="btn-back-inline">← Quay lại bài kiểm tra</a>
-    <h1>{{ '✏️ Sửa' if exercise else '➕ Thêm' }} bài tập</h1>
+    <a href="/teacher/exams/{{ exam.id }}/edit" class="btn-back-inline">Quay lại bài kiểm tra</a>
+    <h1>{{ ' Sửa' if exercise else ' Thêm' }} bài tập</h1>
     <p class="subtitle">Bài kiểm tra: <strong>{{ exam.name }}</strong></p>
   </div>
 </div>
@@ -36,7 +36,7 @@
     </section>
 
     <section class="card-section exercise-form-card">
-      <h2>⚙️ Cấu hình tự động sinh Test Case</h2>
+      <h2>Cấu hình tự động sinh Test Case</h2>
       <p class="hint-left">Hệ thống chạy code Generator để tạo Input, chạy code Solution để lấy Output đúng.</p>
 
       <label for="exNumTests">Số lượng Test Case sinh ra</label>
@@ -54,7 +54,7 @@
 
   <div class="form-actions-sticky">
     <a href="/teacher/exams/{{ exam.id }}/edit" class="btn-secondary">Huỷ</a>
-    <button type="submit" class="btn-primary">💾 Lưu bài tập</button>
+    <button type="submit" class="btn-primary">Lưu bài tập</button>
   </div>
 </form>
 {% endblock %}

@@ -18,22 +18,22 @@
         </div>
       </div>
       <div class="user-info">
-        <a href="/teacher/dashboard" class="btn-back">← Quay lại</a>
+        <a href="/teacher/dashboard" class="btn-back">Quay lại</a>
       </div>
     </header>
 
     <main class="dash-main profile-main">
       <div class="profile-card">
-        <h3>👤 Thông tin cá nhân</h3>
+        <h3>Thông tin cá nhân</h3>
         <div class="profile-detail-list">
           <p><strong>Email</strong><span>{{ user.email }}</span></p>
-          <p><strong>Vai trò</strong><span>👨‍🏫 Giáo viên</span></p>
+          <p><strong>Vai trò</strong><span> Giáo viên</span></p>
           {% if user.full_name %}<p><strong>Họ tên</strong><span>{{ user.full_name }}</span></p>{% endif %}
         </div>
       </div>
 
       <div class="profile-card">
-        <h3>🛡️ Bảo mật phiên đăng nhập</h3>
+        <h3>Bảo mật phiên đăng nhập</h3>
 
         <div class="info-box">
           <strong>Đăng nhập một thiết bị</strong>
@@ -49,6 +49,7 @@
       </div>
     </main>
   </div>
+  <script src="/static/js/auth_session_guard.js"></script>
   <script src="/static/js/idle_timeout.js"></script>
 </body>
 </html>

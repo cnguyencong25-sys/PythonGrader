@@ -8,6 +8,11 @@ from flask_jwt_extended import (
 from extensions import db
 from models import User, LoginLog
 from session_manager import create_session, revoke_session, revoke_all_for_user
+from system_settings import (
+    REGISTRATION_BLOCKED,
+    STUDENT_LOGIN_MAINTENANCE,
+    is_setting_enabled,
+)
 from decorators import role_required
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
@@ -69,6 +74,16 @@ def login():
         _log(email, user.id, False, "wrong_password")
         return _json_error("Email hoặc mật khẩu không đúng.", 401)
 
+    if (
+        user.role == "student"
+        and is_setting_enabled(STUDENT_LOGIN_MAINTENANCE)
+    ):
+        _log(email, user.id, False, "maintenance")
+        return _json_error(
+            "Server đang bảo trì tạm thời, quay lại sau nhé",
+            503,
+        )
+
     # ---------- Login thành công ----------
     session_id = create_session(user.id, _client_ip(), _client_ua())
 
@@ -105,6 +120,16 @@ def login():
 @auth_bp.route("/register", methods=["POST"])
 def register():
     data = request.get_json(silent=True) or {}
+    if is_setting_enabled(STUDENT_LOGIN_MAINTENANCE):
+        return _json_error(
+            "Server đang bảo trì tạm thời, quay lại sau nhé",
+            503,
+        )
+    if is_setting_enabled(REGISTRATION_BLOCKED):
+        return _json_error(
+            "Hiện tại không cho phép tạo tài khoản mới. Vui lòng liên hệ giáo viên.",
+            403,
+        )
     email = (data.get("email") or "").strip().lower()
     password = data.get("password") or ""
     confirm = data.get("confirm_password") or ""

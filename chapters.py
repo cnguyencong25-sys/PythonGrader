@@ -71,6 +71,27 @@ def update_chapter(cid):
     db.session.commit()
     return jsonify({"success": True, "message": "Đã cập nhật chương.", "chapter": c.to_dict(include_exercises=True, exercises_brief=True)}), 200
 
+
+@chapters_bp.route("/<int:cid>/toggle-visibility", methods=["POST"])
+@role_required("teacher")
+def toggle_chapter_visibility(cid):
+    chapter = Chapter.query.filter_by(
+        id=cid,
+        teacher_id=int(get_jwt_identity()),
+    ).first()
+    if not chapter:
+        return _json_error("Không tìm thấy chương.", 404)
+
+    chapter.is_hidden = not chapter.is_hidden
+    db.session.commit()
+    message = "Đã ẩn chương khỏi sinh viên." if chapter.is_hidden else "Đã hiện chương cho sinh viên."
+    return jsonify({
+        "success": True,
+        "is_hidden": chapter.is_hidden,
+        "message": message,
+    }), 200
+
+
 # ============================================================
 # 5. XOÁ CHƯƠNG
 # ============================================================

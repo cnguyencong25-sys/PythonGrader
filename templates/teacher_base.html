@@ -5,11 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Giáo viên — Python Grader{% endblock %}</title>
   <link rel="icon" type="image/png" href="/static/img/Vimaru.png">
+  <script src="/static/js/student_theme.js"></script>
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="stylesheet" href="/static/css/teacher.css">
   <link rel="stylesheet" href="/static/css/announcements.css">
+  <link rel="stylesheet" href="/static/css/app_notifications.css">
 </head>
-<body>
+<body class="teacher-body">
 <div class="teacher-layout">
 
   <!-- ================= SIDEBAR ================= -->
@@ -22,27 +24,39 @@
     <nav class="sidebar-menu">
       <a href="/teacher/chapters"
          class="menu-item {% if active_tab == 'chapters' %}active{% endif %}">
-        <span class="menu-icon">📚</span>
+        <svg class="menu-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H12v18H6.5A2.5 2.5 0 0 0 4 23z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H12v18h5.5A2.5 2.5 0 0 1 20 23z"/></svg>
         <span>Quản lý luyện tập chương</span>
       </a>
       <a href="/teacher/exams"
          class="menu-item {% if active_tab == 'exams' %}active{% endif %}">
-        <span class="menu-icon">📝</span>
+        <svg class="menu-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>
         <span>Quản lý bài kiểm tra</span>
       </a>
       <a href="/teacher/students"
          class="menu-item {% if active_tab == 'students' %}active{% endif %}">
-        <span class="menu-icon">👨‍🎓</span>
+        <svg class="menu-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-1.5a7 7 0 0 1 14 0V21z"/></svg>
         <span>Quản lý sinh viên</span>
+      </a>
+      <a href="/teacher/accounts"
+         class="menu-item {% if active_tab == 'accounts' %}active{% endif %}">
+        <svg class="menu-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
+        <span>Tài Khoản</span>
       </a>
       <button id="announcementToggle" class="menu-item announcement-toggle"
               type="button" aria-haspopup="dialog" aria-expanded="false">
-        <span class="menu-icon">🔔</span>
+        <svg class="menu-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
         <span>Thông báo</span>
       </button>
     </nav>
 
     <div class="sidebar-footer">
+      <div class="teacher-sidebar-appearance">
+        <button class="student-theme-toggle" type="button" data-theme-toggle
+                aria-label="Chuyển sang giao diện tối" aria-pressed="false">
+          <span class="student-theme-icon" aria-hidden="true"></span>
+          <span class="student-theme-label">Chế độ tối</span>
+        </button>
+      </div>
       <div class="teacher-info">
         <div class="teacher-avatar">{{ user.full_name[0] if user.full_name else '?' }}</div>
         <div class="teacher-name">{{ user.full_name or user.email }}</div>
@@ -89,7 +103,9 @@
     window.location.href = "/login";
   });
 </script>
+<script src="/static/js/app_notifications.js"></script>
 <script src="/static/js/announcements.js"></script>
+<script src="/static/js/auth_session_guard.js"></script>
 <script src="/static/js/idle_timeout.js"></script>
 <script src="/static/js/datetime.js"></script>
 {% block scripts %}{% endblock %}

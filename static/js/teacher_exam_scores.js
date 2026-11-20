@@ -172,7 +172,7 @@ document.getElementById("exportSheetBtn").addEventListener("click", async () => 
     messageEl.className = "message error score-export-message";
   } finally {
     button.disabled = false;
-    button.innerHTML = '<span aria-hidden="true">📗</span> Xuất báo cáo xếp hạng';
+    button.textContent = "Xuất báo cáo xếp hạng";
   }
 });
 

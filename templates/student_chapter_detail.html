@@ -4,15 +4,15 @@
 {% block content %}
 <div class="page-header">
   <div>
-    <a href="/student/chapters" class="btn-back-inline">← Quay lại</a>
-    <h1>ℹ️ Thông tin chương</h1>
+    <a href="/student/chapters" class="btn-back-inline">Quay lại</a>
+    <h1>ℹ Thông tin chương</h1>
   </div>
 </div>
 
 <div class="card-section student-chapter-detail-card">
   <div class="student-chapter-heading">
     <h2>{{ chapter.name }}</h2>
-    <p><strong class="chapter-mode-practice">📖 Tất cả bài tập đã xuất bản trong chương</strong></p>
+    <p><strong class="chapter-mode-practice"> Tất cả bài tập đã xuất bản trong chương</strong></p>
   </div>
 
   <!-- VÙNG NÚT BẤM -->
@@ -22,7 +22,7 @@
 
   <!-- LỊCH SỬ LÀM BÀI -->
   <section class="student-history-section">
-    <h3>📜 Lịch sử làm bài</h3>
+    <h3>Lịch sử làm bài</h3>
     <div id="historyArea">
       <p class="loading">Đang tải lịch sử...</p>
     </div>
@@ -69,8 +69,8 @@
     if (activeSid) {
       // Có bài đang làm dở
       actionArea.innerHTML = `
-        <button id="btnRestart" class="btn-secondary">🔄 Bắt đầu lại</button>
-        <button id="btnContinue" class="btn-primary">▶️ Tiếp tục làm</button>
+        <button id="btnRestart" class="btn-secondary">Bắt đầu lại</button>
+        <button id="btnContinue" class="btn-primary">Tiếp tục làm</button>
       `;
       // Gắn sự kiện
       document.getElementById("btnRestart").addEventListener("click", startNew);
@@ -81,7 +81,7 @@
       // Chưa có bài làm dở
       actionArea.innerHTML = `
         <a href="/student/chapters" class="btn-secondary">Huỷ</a>
-        <button id="btnStart" class="btn-primary">🚀 Bắt đầu làm</button>
+        <button id="btnStart" class="btn-primary">Bắt đầu làm</button>
       `;
       // Gắn sự kiện
       document.getElementById("btnStart").addEventListener("click", startNew);
@@ -120,9 +120,9 @@
         window.location.href = `/student/workspace?session_id=${data.session_id}`;
         return;
       }
-      alert(data.message || "Lỗi tạo phiên làm bài.");
+      await window.showAppAlert(data.message || "Lỗi tạo phiên làm bài.");
     } catch (error) {
-      alert("Không thể kết nối máy chủ để tạo phiên làm bài.");
+      await window.showAppAlert("Không thể kết nối máy chủ để tạo phiên làm bài.");
     } finally {
       if (button) button.disabled = false;
     }

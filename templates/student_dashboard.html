@@ -11,7 +11,7 @@
     <header class="dash-header">
       <h1 class="student-dashboard-brand"><img src="/static/img/Vimaru.png" alt="">Python Grader</h1>
       <div class="user-info">
-        <span>👨‍🎓 {{ user.full_name }}</span>
+        <span> {{ user.full_name }}</span>
         <span class="badge">{{ user.class_name }}</span>
         <span class="badge">MSV: {{ user.student_id }}</span>
         <button id="logoutBtn" class="btn-logout">Đăng xuất</button>
@@ -23,7 +23,7 @@
       <p>Đây là dashboard sinh viên. Danh sách bài tập sẽ xuất hiện ở đây.</p>
 
       <div class="placeholder-card">
-        📚 <strong>Danh sách bài tập</strong>
+         <strong>Danh sách bài tập</strong>
         <p>Sẽ được triển khai ở Giai đoạn 6.</p>
       </div>
     </main>
@@ -34,6 +34,7 @@
       window.location.href = "/login";
     });
   </script>
+  <script src="/static/js/auth_session_guard.js"></script>
   <script src="/static/js/idle_timeout.js"></script>
 </body>
 </html>

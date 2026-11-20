@@ -3,9 +3,11 @@ from flask_jwt_extended import get_jwt_identity
 from extensions import db
 from models import (
     Exam, ExamExercise, ExamChapterRule, PublicExamSession, PublicExamSubmission,
-    ExamSession, ExamSubmission, ExamChapterSubmission, ExamRetakePermission, Exercise
+    ExamSession, ExamSubmission, ExamChapterSubmission, ExamRetakePermission, Exercise,
+    ExamMonitoringRecord, ExamProctoringEvent, User,
 )
 from decorators import role_required
+from exam_proctoring import add_event as add_proctoring_event, get_or_create_record
 from datetime import datetime, timedelta
 import json
 import os
@@ -72,6 +74,7 @@ def create_exam():
     end_time_str = data.get("end_time")
     duration = data.get("duration_minutes", 45)
     max_attempts = data.get("max_attempts", 1)
+    anti_cheat_enabled = data.get("anti_cheat_enabled", True)
     exam_password = (data.get("exam_password") or "").strip()
 
     if not name or len(name) < 3:
@@ -88,6 +91,8 @@ def create_exam():
             return _json_error("Số lượt làm bài phải ít nhất là 1.")
     except (ValueError, TypeError):
         return _json_error("Số lượt làm bài không hợp lệ.")
+    if not isinstance(anti_cheat_enabled, bool):
+        return _json_error("Cấu hình chống gian lận không hợp lệ.")
 
     start_time = _parse_datetime(start_time_str)
     end_time = _parse_datetime(end_time_str)
@@ -105,6 +110,7 @@ def create_exam():
         end_time=end_time,
         duration_minutes=duration,
         max_attempts=max_attempts,
+        anti_cheat_enabled=anti_cheat_enabled,
         teacher_id=int(get_jwt_identity())
     )
     exam.set_exam_password(exam_password)
@@ -158,6 +164,11 @@ def update_exam(eid):
             exam.max_attempts = max_attempts
         except (ValueError, TypeError):
             return _json_error("Số lượt làm bài không hợp lệ.")
+    if "anti_cheat_enabled" in data:
+        anti_cheat_enabled = data.get("anti_cheat_enabled")
+        if not isinstance(anti_cheat_enabled, bool):
+            return _json_error("Cấu hình chống gian lận không hợp lệ.")
+        exam.anti_cheat_enabled = anti_cheat_enabled
     if data.get("clear_exam_password"):
         exam.set_exam_password("")
     elif (data.get("exam_password") or "").strip():
@@ -456,6 +467,13 @@ def _public_review_submissions(session):
 
 def _filtered_score_rows(exam_id):
     rows = []
+    exam = db.session.get(Exam, exam_id)
+    anti_cheat_enabled = bool(exam and exam.anti_cheat_enabled)
+    records = (
+        ExamMonitoringRecord.query.filter_by(exam_id=exam_id).all()
+        if anti_cheat_enabled else []
+    )
+    records_by_user = {record.user_id: record for record in records}
     for session in PublicExamSession.query.filter_by(exam_id=exam_id, is_finalized=True).all():
         if not _matches_score_filters(
             session.started_at, session.class_name, session.student_id, session.full_name
@@ -469,13 +487,14 @@ def _filtered_score_rows(exam_id):
             "score": totals["total_score"], "max_score": totals["total_max"],
             "time_taken": _format_time_taken(session.started_at, session.finished_at),
             "exam_date": session.started_at.date().isoformat(),
-            "violation_count": session.violation_count,
+            "violation_count": session.violation_count if anti_cheat_enabled else 0,
             "started_at": vietnam_iso(session.started_at),
             "finished_at": vietnam_iso(session.finished_at),
             "email": "",
             "status": (
                 "Chưa nộp" if not review_submissions
-                else "Nghi vấn gian lận" if session.violation_count else "Hoàn thành"
+                else "Nghi vấn gian lận"
+                if anti_cheat_enabled and session.violation_count else "Hoàn thành"
             ),
             "submissions": review_submissions,
         })
@@ -489,19 +508,60 @@ def _filtered_score_rows(exam_id):
             continue
         totals = session.to_dict()
         review_submissions = _authenticated_review_submissions(session)
+        record = records_by_user.get(session.user_id) if anti_cheat_enabled else None
+        is_blocked = bool(
+            record and record.is_blocked and record.current_session_id == session.id
+        )
         rows.append({
             "session_id": session.id, "student_id": student_id, "full_name": full_name,
-            "class_name": class_name, "score": totals["total_score"], "max_score": totals["total_max"],
+            "class_name": class_name,
+            "score": 0.0 if is_blocked else totals["total_score"],
+            "max_score": totals["total_max"],
             "time_taken": _format_time_taken(session.started_at, session.finished_at),
-            "exam_date": session.started_at.date().isoformat(), "violation_count": 0,
+            "exam_date": session.started_at.date().isoformat(),
+            "violation_count": record.abnormal_count if record else 0,
             "started_at": vietnam_iso(session.started_at),
             "finished_at": vietnam_iso(session.finished_at),
             "email": session.user.email,
-            "status": (
+            "status": "Gian lận" if is_blocked or (record and record.is_cheating) else (
                 "Chưa nộp" if not review_submissions
                 else "Hoàn thành"
             ),
             "submissions": review_submissions,
+        })
+
+    existing_session_ids = {row["session_id"] for row in rows}
+    for record in records:
+        session = record.current_session
+        if (
+            not record.is_blocked
+            or not session
+            or session.is_finalized
+            or session.id in existing_session_ids
+            or not session.user
+        ):
+            continue
+        student = session.user
+        class_name = student.class_name or ""
+        student_id = student.student_id or ""
+        full_name = student.full_name or ""
+        if not _matches_score_filters(session.started_at, class_name, student_id, full_name):
+            continue
+        rows.append({
+            "session_id": session.id,
+            "student_id": student_id,
+            "full_name": full_name,
+            "class_name": class_name,
+            "score": 0.0,
+            "max_score": 10.0,
+            "time_taken": _format_time_taken(session.started_at, record.blocked_at),
+            "exam_date": session.started_at.date().isoformat(),
+            "violation_count": record.abnormal_count,
+            "started_at": vietnam_iso(session.started_at),
+            "finished_at": vietnam_iso(record.blocked_at),
+            "email": student.email,
+            "status": "Gian lận",
+            "submissions": _authenticated_review_submissions(session),
         })
     rows.sort(key=lambda row: row["started_at"], reverse=True)
     return rows
@@ -514,6 +574,131 @@ def exam_scores(eid):
     if not exam:
         return _json_error("Không tìm thấy bài kiểm tra.", 404)
     return jsonify({"success": True, "scores": _filtered_score_rows(eid)}), 200
+
+
+@exams_bp.route("/<int:eid>/monitor", methods=["GET"])
+@role_required("teacher")
+def exam_monitor(eid):
+    teacher_id = int(get_jwt_identity())
+    exam = Exam.query.filter_by(id=eid, teacher_id=teacher_id).first()
+    if not exam:
+        return _json_error("Không tìm thấy bài kiểm tra.", 404)
+    if not exam.anti_cheat_enabled:
+        return _json_error("Chế độ chống gian lận chưa được bật cho bài kiểm tra này.", 403)
+
+    users = User.query.filter_by(role="student").order_by(
+        User.student_id.asc(), User.full_name.asc(), User.id.asc()
+    ).all()
+    records = ExamMonitoringRecord.query.filter_by(exam_id=eid).all()
+    records_by_user = {record.user_id: record for record in records}
+    sessions = ExamSession.query.filter_by(exam_id=eid).order_by(
+        ExamSession.started_at.desc(), ExamSession.id.desc()
+    ).all()
+    sessions_by_user = {}
+    for session in sessions:
+        sessions_by_user.setdefault(session.user_id, session)
+    events_by_record = {}
+    if records:
+        events = ExamProctoringEvent.query.filter(
+            ExamProctoringEvent.record_id.in_([record.id for record in records])
+        ).order_by(ExamProctoringEvent.occurred_at.desc()).all()
+        for event in events:
+            grouped = events_by_record.setdefault(event.record_id, [])
+            if len(grouped) < 20:
+                grouped.append({
+                    "event_type": event.event_type,
+                    "detail": event.detail,
+                    "occurred_at": vietnam_iso(event.occurred_at),
+                })
+
+    participants = []
+    for user in users:
+        record = records_by_user.get(user.id)
+        session = None
+        if record and record.current_session_id:
+            session = db.session.get(ExamSession, record.current_session_id)
+        if not session:
+            session = sessions_by_user.get(user.id)
+
+        if record and (record.is_blocked or record.is_cheating):
+            status = "cheating"
+        elif session and not session.is_finalized:
+            status = "in_progress"
+        elif session:
+            status = "completed"
+        else:
+            status = "not_started"
+
+        participants.append({
+            "user_id": user.id,
+            "student_id": user.student_id or "",
+            "full_name": user.full_name or user.email,
+            "status": status,
+            "abnormal_count": record.abnormal_count if record else 0,
+            "is_blocked": bool(record and record.is_blocked),
+            "session_id": session.id if session else None,
+            "events": events_by_record.get(record.id, []) if record else [],
+        })
+
+    return jsonify({
+        "success": True,
+        "exam": {"id": exam.id, "name": exam.name},
+        "participants": participants,
+        "updated_at": vietnam_iso(vietnam_now_naive()),
+    }), 200
+
+
+@exams_bp.route(
+    "/<int:eid>/monitor/students/<int:uid>/toggle-block",
+    methods=["POST"],
+)
+@role_required("teacher")
+def toggle_exam_participant_block(eid, uid):
+    teacher_id = int(get_jwt_identity())
+    exam = Exam.query.filter_by(id=eid, teacher_id=teacher_id).first()
+    if not exam:
+        return _json_error("Không tìm thấy bài kiểm tra.", 404)
+    if not exam.anti_cheat_enabled:
+        return _json_error("Chế độ chống gian lận chưa được bật cho bài kiểm tra này.", 403)
+    student = User.query.filter_by(id=uid, role="student").first()
+    if not student:
+        return _json_error("Không tìm thấy sinh viên.", 404)
+
+    current_session = ExamSession.query.filter_by(
+        exam_id=eid,
+        user_id=uid,
+    ).order_by(ExamSession.started_at.desc(), ExamSession.id.desc()).first()
+    record = get_or_create_record(
+        exam_id=eid,
+        user_id=uid,
+        session_id=current_session.id if current_session else None,
+    )
+
+    if record.is_blocked:
+        record.is_blocked = False
+        record.is_cheating = False
+        record.blocked_at = None
+        action = "teacher_unblock"
+        detail = "Giáo viên đã bỏ chặn bài kiểm tra"
+    else:
+        record.is_blocked = True
+        record.is_cheating = True
+        record.blocked_at = vietnam_now_naive()
+        action = "teacher_block"
+        detail = "Giáo viên đã chặn bài kiểm tra; điểm được chốt 0"
+    add_proctoring_event(
+        record,
+        action,
+        detail,
+        session_id=record.current_session_id,
+    )
+    db.session.commit()
+    return jsonify({
+        "success": True,
+        "is_blocked": record.is_blocked,
+        "is_cheating": record.is_cheating,
+        "abnormal_count": record.abnormal_count,
+    }), 200
 
 
 @exams_bp.route("/<int:eid>/export-sheet", methods=["POST"])

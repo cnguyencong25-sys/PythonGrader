@@ -50,7 +50,7 @@ function renderStudents() {
       <td class="student-email-cell">${escapeHtml(student.email)}</td>
       <td>
         <a class="btn-secondary student-history-link" href="/teacher/students/${student.id}/history">
-          Xem bài đã làm <span aria-hidden="true">→</span>
+          Xem bài đã làm
         </a>
       </td>
       <td>

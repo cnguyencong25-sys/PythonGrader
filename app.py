@@ -3,7 +3,13 @@ import secrets
 from datetime import timedelta
 from flask import Flask, render_template, jsonify, redirect, request
 from sqlalchemy import inspect, text
-from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
+from flask_jwt_extended import (
+    jwt_required,
+    get_jwt,
+    get_jwt_identity,
+    unset_jwt_cookies,
+)
+from flask_jwt_extended.exceptions import JWTExtendedException
 from config import Config
 from extensions import db, bcrypt, jwt
 
@@ -11,7 +17,7 @@ from extensions import db, bcrypt, jwt
 from models import (
     User, Chapter, Exercise, Exam, ExamExercise, 
     ChapterSession, ChapterSubmission, 
-    ExamSession, ExamSubmission, PublicExamSession
+    ExamSession, ExamSubmission, PublicExamSession, FreePracticeSession
 )
 
 from auth import auth_bp
@@ -20,11 +26,12 @@ from exams import exams_bp
 from student_api import student_api_bp, public_exam_bp
 from teacher_students import teacher_students_bp
 from announcements import announcements_bp
+from teacher_account_settings import teacher_account_settings_bp
 from session_manager import (
     verify_session, list_active_sessions, count_active_sessions,
     IDLE_TIMEOUT_MINUTES
 )
-from time_utils import vietnam_datetime_local_value
+from time_utils import vietnam_datetime_local_value, vietnam_now_naive
 
 
 def create_app(test_config=None):
@@ -38,6 +45,16 @@ def create_app(test_config=None):
     jwt.init_app(app)
     app.jinja_env.filters["vietnam_datetime_local"] = vietnam_datetime_local_value
 
+    @jwt.expired_token_loader
+    def handle_expired_jwt(jwt_header, jwt_payload):
+        if request.path.startswith("/api/"):
+            response = jsonify({"msg": "Token has expired"})
+            response.status_code = 401
+        else:
+            response = redirect("/login?expired=token")
+        unset_jwt_cookies(response)
+        return response
+
     # Đăng ký các Blueprint (API)
     app.register_blueprint(auth_bp)
     app.register_blueprint(chapters_bp)
@@ -46,6 +63,7 @@ def create_app(test_config=None):
     app.register_blueprint(public_exam_bp)
     app.register_blueprint(teacher_students_bp)
     app.register_blueprint(announcements_bp)
+    app.register_blueprint(teacher_account_settings_bp)
 
     # ============================================================
     # HOOK: kiểm tra session MỖI REQUEST có auth (Single-session)
@@ -74,7 +92,7 @@ def create_app(test_config=None):
         try:
             from flask_jwt_extended import decode_token
             claims = decode_token(token)
-        except Exception:
+        except JWTExtendedException:
             return None
 
         sid = claims.get("sid")
@@ -102,12 +120,41 @@ def create_app(test_config=None):
     # ============================================================
     # ROUTE TRANG CÔNG KHAI
     # ============================================================
+    def redirect_if_authenticated():
+        token = request.cookies.get("access_token_cookie")
+        if not token:
+            return None
+        try:
+            from flask_jwt_extended import decode_token
+            claims = decode_token(token)
+        except JWTExtendedException:
+            return None
+
+        sid = claims.get("sid")
+        if not sid:
+            return None
+        session_is_active, _ = verify_session(sid)
+        if not session_is_active:
+            return None
+
+        if claims.get("role") == "student":
+            return redirect("/student/dashboard")
+        if claims.get("role") == "teacher":
+            return redirect("/teacher/dashboard")
+        return None
+
     @app.route("/")
     def index():
-        return render_template("login.html")
+        redirect_response = redirect_if_authenticated()
+        if redirect_response:
+            return redirect_response
+        return render_template("welcome.html")
 
     @app.route("/login")
     def login_page():
+        redirect_response = redirect_if_authenticated()
+        if redirect_response:
+            return redirect_response
         return render_template("login.html")
 
     @app.route("/register")
@@ -249,6 +296,25 @@ def create_app(test_config=None):
             return redirect("/teacher/exams")
         return render_template("teacher_exam_edit.html", user=user, exam=exam, active_tab="exams")
 
+    @app.route("/teacher/exams/<int:eid>/monitor")
+    @jwt_required()
+    def teacher_exam_monitor_page(eid):
+        claims = get_jwt()
+        if claims.get("role") != "teacher":
+            return redirect("/student/dashboard")
+        user = User.query.get(int(get_jwt_identity()))
+        exam = Exam.query.filter_by(id=eid, teacher_id=user.id).first()
+        if not exam:
+            return redirect("/teacher/exams")
+        if not exam.anti_cheat_enabled:
+            return redirect(f"/teacher/exams/{eid}/edit")
+        return render_template(
+            "teacher_exam_monitor.html",
+            user=user,
+            exam=exam,
+            active_tab="exams",
+        )
+
     @app.route("/teacher/exams/<int:eid>/scores")
     @jwt_required()
     def teacher_exam_scores_page(eid):
@@ -354,7 +420,7 @@ def create_app(test_config=None):
             return redirect("/teacher/dashboard")
         user = User.query.get(int(get_jwt_identity()))
         chapter = Chapter.query.get(cid)
-        if not chapter:
+        if not chapter or chapter.is_hidden:
             return redirect("/student/chapters")
         return render_template("student_chapter_detail.html", user=user, chapter=chapter, active_tab="chapters")
 
@@ -400,7 +466,44 @@ def create_app(test_config=None):
         session = ExamSession.query.filter_by(id=sid, user_id=user.id).first()
         if not session: return redirect("/student/exams")
 
-        return render_template("student_exam_workspace.html", user=user, exam=session.exam, session_id=session.id, active_tab="exams")
+        return render_template(
+            "student_exam_workspace.html",
+            user=user,
+            exam=session.exam,
+            session_id=session.id,
+            active_tab="exams",
+            session_type="exam",
+            is_official_exam=True,
+        )
+
+    @app.route("/student/free-practice-workspace")
+    @jwt_required()
+    def student_free_practice_workspace_page():
+        claims = get_jwt()
+        if claims.get("role") != "student":
+            return redirect("/teacher/dashboard")
+        user = User.query.get(int(get_jwt_identity()))
+        session_id = request.args.get("session_id", type=int)
+        if not session_id:
+            return redirect("/student/chapters")
+
+        session = FreePracticeSession.query.filter_by(
+            id=session_id, user_id=user.id
+        ).first()
+        if not session:
+            return redirect("/student/chapters")
+
+        title = "Luyện tập tự do" if session.mode == "practice" else "Ôn thi tự do"
+        return render_template(
+            "student_exam_workspace.html",
+            user=user,
+            exam={"id": 0, "name": title},
+            session_id=session.id,
+            session_type="free",
+            is_official_exam=False,
+            session_mode=session.mode,
+            active_tab="chapters",
+        )
 
 
     # ============================================================
@@ -476,17 +579,138 @@ def _seed_teacher():
     print(f"✅ Đã tạo tài khoản giáo viên: {email}")
 
 
+def _upgrade_exam_proctoring_schema(connection):
+    timestamp_type = (
+        "TIMESTAMP WITHOUT TIME ZONE"
+        if connection.dialect.name == "postgresql"
+        else "DATETIME"
+    )
+    add_column_if_missing = (
+        " IF NOT EXISTS" if connection.dialect.name == "postgresql" else ""
+    )
+    migration_time = vietnam_now_naive().isoformat(sep=" ")
+    tables = set(inspect(connection).get_table_names())
+    table_definitions = {
+        "exam_monitoring_records": {
+            "required": {"id", "exam_id", "user_id"},
+            "columns": {
+                "current_session_id": (
+                    "INTEGER REFERENCES exam_sessions(id) ON DELETE SET NULL"
+                ),
+                "device_id": "VARCHAR(64)",
+                "abnormal_count": "INTEGER NOT NULL DEFAULT 0",
+                "is_blocked": "BOOLEAN NOT NULL DEFAULT FALSE",
+                "is_cheating": "BOOLEAN NOT NULL DEFAULT FALSE",
+                "blocked_at": timestamp_type,
+                "updated_at": timestamp_type,
+            },
+            "timestamps": ("updated_at",),
+        },
+        "exam_proctoring_events": {
+            "required": {"id", "record_id"},
+            "columns": {
+                "session_id": (
+                    "INTEGER REFERENCES exam_sessions(id) ON DELETE SET NULL"
+                ),
+                "event_type": "VARCHAR(32) NOT NULL DEFAULT 'legacy_event'",
+                "detail": "VARCHAR(255) NOT NULL DEFAULT ''",
+                "event_token": "VARCHAR(32)",
+                "occurred_at": timestamp_type,
+            },
+            "timestamps": ("occurred_at",),
+        },
+    }
+
+    for table_name, definition in table_definitions.items():
+        if table_name not in tables:
+            raise RuntimeError(
+                f"Expected table {table_name} to exist after db.create_all()."
+            )
+        columns = {
+            column["name"]
+            for column in inspect(connection).get_columns(table_name)
+        }
+        missing_required = definition["required"] - columns
+        if missing_required:
+            raise RuntimeError(
+                f"Cannot safely migrate {table_name}; identity columns are missing: "
+                + ", ".join(sorted(missing_required))
+            )
+
+        missing_columns = set()
+        for column_name, sql_type in definition["columns"].items():
+            if column_name in columns:
+                continue
+            connection.execute(text(
+                f"ALTER TABLE {table_name} ADD COLUMN{add_column_if_missing} "
+                f"{column_name} {sql_type}"
+            ))
+            missing_columns.add(column_name)
+
+        for column_name in definition["timestamps"]:
+            if column_name not in missing_columns:
+                continue
+            connection.execute(
+                text(
+                    f"UPDATE {table_name} SET {column_name} = :migration_time "
+                    f"WHERE {column_name} IS NULL"
+                ),
+                {"migration_time": migration_time},
+            )
+
+    indexes = (
+        (
+            "uq_exam_monitoring_user",
+            "exam_monitoring_records",
+            "exam_id, user_id",
+            True,
+        ),
+        ("ix_exam_monitoring_records_exam_id", "exam_monitoring_records", "exam_id", False),
+        ("ix_exam_monitoring_records_user_id", "exam_monitoring_records", "user_id", False),
+        (
+            "ix_exam_monitoring_records_current_session_id",
+            "exam_monitoring_records",
+            "current_session_id",
+            False,
+        ),
+        ("ix_exam_proctoring_events_record_id", "exam_proctoring_events", "record_id", False),
+        ("ix_exam_proctoring_events_session_id", "exam_proctoring_events", "session_id", False),
+        ("ix_exam_proctoring_events_event_type", "exam_proctoring_events", "event_type", False),
+        ("ix_exam_proctoring_events_occurred_at", "exam_proctoring_events", "occurred_at", False),
+        (
+            "uq_exam_proctoring_event_token",
+            "exam_proctoring_events",
+            "record_id, session_id, event_token",
+            True,
+        ),
+    )
+    for index_name, table_name, columns, unique in indexes:
+        unique_sql = "UNIQUE " if unique else ""
+        connection.execute(text(
+            f"CREATE {unique_sql}INDEX IF NOT EXISTS {index_name} "
+            f"ON {table_name} ({columns})"
+        ))
+
+
 def _upgrade_existing_schema():
     columns = {column["name"] for column in inspect(db.engine).get_columns("exams")}
+    chapter_columns = {
+        column["name"] for column in inspect(db.engine).get_columns("chapters")
+    }
     session_columns = {
         column["name"] for column in inspect(db.engine).get_columns("exam_sessions")
     }
     additions = {
         "max_attempts": "INTEGER NOT NULL DEFAULT 1",
+        "anti_cheat_enabled": "BOOLEAN NOT NULL DEFAULT TRUE",
         "password_hash": "VARCHAR(255)",
         "access_code": "VARCHAR(32)",
     }
     with db.engine.begin() as connection:
+        if "is_hidden" not in chapter_columns:
+            connection.execute(text(
+                "ALTER TABLE chapters ADD COLUMN is_hidden BOOLEAN NOT NULL DEFAULT FALSE"
+            ))
         for column, definition in additions.items():
             if column not in columns:
                 connection.execute(text(f"ALTER TABLE exams ADD COLUMN {column} {definition}"))
@@ -524,6 +748,7 @@ def _upgrade_existing_schema():
                     "UPDATE exams SET end_time = end_time - INTERVAL '7 hours' "
                     "WHERE end_time IS NOT NULL"
                 ))
+        _upgrade_exam_proctoring_schema(connection)
 
     # Older authenticated exam sessions could have UTC finish times while starts
     # were stored as Vietnam-local naive datetimes.

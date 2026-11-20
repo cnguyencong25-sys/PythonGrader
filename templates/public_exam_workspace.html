@@ -8,6 +8,7 @@
   <script src="/static/js/student_theme.js"></script>
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="stylesheet" href="/static/css/student.css">
+  <link rel="stylesheet" href="/static/css/app_notifications.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
@@ -23,8 +24,9 @@
         <h2>{{ exam.name }}</h2>
       </header>
       <button id="studentThemeToggle" class="student-theme-toggle public-theme-toggle"
-              type="button" aria-label="Chuyển sang giao diện tối" aria-pressed="false">
-        <span class="student-theme-icon" aria-hidden="true">☾</span>
+              type="button" data-theme-toggle
+              aria-label="Chuyển sang giao diện tối" aria-pressed="false">
+        <span class="student-theme-icon" aria-hidden="true"></span>
         <span class="student-theme-label">Chế độ tối</span>
       </button>
       <p class="timer-box" id="timeText">--:--</p>
@@ -55,17 +57,45 @@
           </div>
           <div class="sample-cases-display public-sample-cases" id="problemSampleCases"></div>
         </article>
-        <section class="public-editor-card" aria-label="Trình soạn thảo mã">
-          <textarea id="codeEditor"></textarea>
-        </section>
+        <div class="ws-code-workbench public-code-workbench">
+          <section class="public-editor-card ws-editor-area" aria-label="Trình soạn thảo mã">
+            <div class="ws-pane-heading"><strong>Code Python</strong></div>
+            <textarea id="codeEditor"></textarea>
+          </section>
+          <section class="ws-run-panel" aria-label="Chạy thử với input tùy chỉnh">
+            <div class="ws-pane-heading">
+              <strong>Output</strong>
+              <div class="ws-console-heading-actions">
+                <span id="runStatus" role="status"></span>
+                <button id="clearRunOutputBtn" class="ws-console-clear" type="button">Xóa</button>
+              </div>
+            </div>
+            <div class="ws-run-console">
+              <pre id="runOutput" class="ws-run-output" aria-live="polite"></pre>
+              <form id="runInputForm" class="ws-run-input-form" hidden>
+                <pre id="runInputTranscript" class="ws-run-input-transcript" aria-live="polite"></pre>
+                <label id="runPrompt" for="runInput">Chương trình đang chờ input</label>
+                <div class="ws-run-input-row">
+                  <textarea id="runInput" class="ws-run-input" rows="1" spellcheck="false"
+                            placeholder="Nhập input, Enter để chạy; Shift+Enter xuống dòng..."></textarea>
+                </div>
+              </form>
+            </div>
+            <button id="runCodeBtn" class="btn-secondary ws-run-button" type="button">Chạy thử</button>
+          </section>
+        </div>
         <footer class="public-submit-toolbar">
           <p id="submitResult" class="public-submit-result" role="status"></p>
-          <button id="submitBtn" class="btn-primary">Nộp câu này</button>
+          <div class="ws-toolbar-actions">
+            <button id="nextQuestionBtn" class="btn-secondary" type="button" disabled>Chuyển tiếp</button>
+            <button id="submitBtn" class="btn-primary" type="button">Nộp câu này</button>
+          </div>
         </footer>
       </section>
       <p id="workspaceMessage" role="alert"></p>
     </main>
   </div>
+  <script src="/static/js/app_notifications.js"></script>
   <script src="/static/js/student_code_editor.js"></script>
   <script src="/static/js/public_exam_workspace.js"></script>
 </body>

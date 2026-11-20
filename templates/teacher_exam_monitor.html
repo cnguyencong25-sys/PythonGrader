@@ -1,0 +1,45 @@
+{% extends "teacher_base.html" %}
+{% block title %}Giám sát kiểm tra — {{ exam.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <a href="/teacher/exams/{{ exam.id }}/edit" class="btn-back-inline">Quay lại cấu hình</a>
+    <h1>Giám sát kiểm tra</h1>
+    <p class="subtitle">{{ exam.name }}</p>
+  </div>
+  <span id="monitorUpdatedAt" class="monitor-updated-at" role="status">Đang kết nối...</span>
+</div>
+
+<section class="card-section exam-monitor-card">
+  <div class="monitor-toolbar">
+    <p>Danh sách cập nhật tự động mỗi 3 giây. Ngưỡng đánh dấu gian lận: 5 lần bất thường.</p>
+    <button id="refreshMonitor" class="btn-secondary" type="button">Làm mới</button>
+  </div>
+  <div id="monitorError" class="message" role="alert"></div>
+  <div class="table-responsive monitor-table-wrap">
+    <table class="data-table monitor-table">
+      <thead>
+        <tr>
+          <th>Mã sinh viên (MSV)</th>
+          <th>Tên sinh viên</th>
+          <th>Trạng thái làm bài</th>
+          <th>Số lần bất thường</th>
+          <th>Báo cáo gian lận / Chi tiết log</th>
+          <th>Hành động</th>
+        </tr>
+      </thead>
+      <tbody id="monitorRows">
+        <tr><td colspan="6" class="monitor-empty">Đang tải danh sách...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.examMonitorId = {{ exam.id|tojson }};
+</script>
+<script src="/static/js/teacher_exam_monitor.js"></script>
+{% endblock %}

@@ -188,6 +188,52 @@ body {
   height: calc(100vh - 60px); /* Trừ đi padding của teacher-main */
 }
 
+.student-taskbar-toggle {
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(120, 132, 155, 0.3);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  font-size: 21px;
+  line-height: 1;
+}
+
+.student-taskbar-toggle:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.student-taskbar-toggle:focus-visible {
+  outline: 3px solid rgba(102, 126, 234, 0.45);
+  outline-offset: 2px;
+}
+
+.student-taskbar-toggle[hidden] {
+  display: none !important;
+}
+
+.student-layout .sidebar-brand {
+  display: flex;
+  align-items: center;
+}
+
+.student-layout .student-taskbar-collapse {
+  margin-left: auto;
+}
+
+.student-layout .student-taskbar-reopen {
+  position: absolute;
+  z-index: 5;
+  top: 14px;
+  left: 14px;
+}
+
 /* --- CỘT TRÁI: MENU BÀI TẬP --- */
 .ws-sidebar {
   width: 320px;
@@ -247,6 +293,7 @@ body {
 /* --- CỘT PHẢI: BÀI LÀM --- */
 .ws-main {
   flex: 1;
+  min-width: 0;
   background: #fff;
   border-radius: 12px;
   border: 1px solid #e8ecf5;
@@ -343,6 +390,12 @@ body {
   background: #fff;
 }
 
+.ws-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .submit-result {
   font-weight: 600;
   font-size: 15px;
@@ -427,6 +480,7 @@ body {
 
 /* ---------- Student portal refinements ---------- */
 .student-layout {
+  position: relative;
   min-height: 100vh;
   background: #f3f5fa;
 }
@@ -721,6 +775,35 @@ body {
 
 .student-layout .ws-sidebar {
   width: 292px;
+}
+
+.student-layout.taskbar-collapsed .teacher-sidebar {
+  display: none;
+}
+
+.student-layout.taskbar-collapsed .teacher-main {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  padding-top: 72px;
+}
+
+.student-layout.official-exam-workspace .teacher-sidebar,
+.student-layout.official-exam-workspace .student-taskbar-toggle {
+  display: none !important;
+}
+
+.student-layout.official-exam-workspace .teacher-main {
+  width: 100%;
+  min-width: 0;
+  height: 100vh;
+  padding: 0;
+  overflow: hidden;
+}
+
+.student-layout.official-exam-workspace .workspace-layout {
+  height: 100vh;
+  min-height: 0;
 }
 
 .student-layout .ws-sidebar-header {
@@ -1286,6 +1369,18 @@ body {
     width: 100%;
   }
 
+  .student-layout .ws-toolbar-actions {
+    width: 100%;
+  }
+
+  .student-layout .ws-toolbar-actions button {
+    flex: 1;
+  }
+
+  .student-layout .ws-submit-button {
+    min-width: 0;
+  }
+
   .student-layout .ws-exam-header {
     align-items: flex-start;
   }
@@ -1325,6 +1420,7 @@ body.public-exam-workspace-body {
 }
 
 .public-workspace {
+  position: relative;
   display: grid;
   grid-template-columns: 284px minmax(0, 1fr);
   gap: 18px;
@@ -1570,6 +1666,11 @@ body.public-exam-workspace-body {
   font-size: 13px;
 }
 
+.public-submit-toolbar .ws-toolbar-actions {
+  display: flex;
+  gap: 10px;
+}
+
 .public-submit-toolbar .btn-primary {
   min-width: 140px;
   min-height: 40px;
@@ -1667,6 +1768,18 @@ body.public-exam-workspace-body {
 
   .public-submit-toolbar .btn-primary {
     width: 100%;
+  }
+
+  .public-submit-toolbar .ws-toolbar-actions {
+    width: 100%;
+  }
+
+  .public-submit-toolbar .ws-toolbar-actions button {
+    flex: 1;
+  }
+
+  .public-submit-toolbar .btn-primary {
+    min-width: 0;
   }
 
   .public-editor-card .CodeMirror {
@@ -2179,7 +2292,32 @@ html[data-student-theme="dark"] .public-submit-toolbar .btn-primary {
 
 /* Compact problem details and editor panels across student workspaces. */
 .student-layout .ws-problem-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: 13px 20px;
+}
+
+.student-layout .ws-problem-header h2 {
+  min-width: 0;
+}
+
+.ws-theme-toggle {
+  flex: 0 0 auto;
+  min-height: 36px;
+  border-color: #dce2ed;
+  background: #f7f8fc;
+  color: #34415d;
+}
+
+.ws-theme-toggle .student-theme-icon {
+  color: #5969d8;
+}
+
+.ws-theme-toggle:hover {
+  border-color: #aeb8ee;
+  background: #eef1ff;
 }
 
 .student-layout .ws-problem-desc {
@@ -2222,9 +2360,22 @@ html[data-student-theme="dark"] .public-submit-toolbar .btn-primary {
   line-height: 1.5;
 }
 
-.student-layout .ws-editor-area {
+.student-layout .ws-code-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(260px, 1fr);
+  flex: 1;
   min-height: 0;
   margin: 12px 16px 0;
+  gap: 12px;
+}
+
+.student-layout .ws-editor-area {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  margin: 0;
   border: 1px solid #dfe5f0;
   border-radius: 14px;
   background: #282a36;
@@ -2238,7 +2389,214 @@ html[data-student-theme="dark"] .public-submit-toolbar .btn-primary {
 }
 
 .student-layout .ws-editor-area .CodeMirror {
-  border-radius: 13px;
+  height: 0 !important;
+  min-height: 0;
+  flex: 1 1 auto;
+  border-radius: 0 0 13px 13px;
+}
+
+.ws-pane-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 39px;
+  padding: 0 13px;
+  border-bottom: 1px solid #e6eaf2;
+  background: #f8f9fc;
+  color: #3b4861;
+  font-size: 12px;
+}
+
+.ws-pane-heading > span {
+  color: #8993a7;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.ws-run-panel {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  padding: 0 12px 12px;
+  overflow: hidden;
+  border: 1px solid #e1e6f0;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 5px 16px rgba(27, 39, 67, 0.05);
+}
+
+.ws-run-panel .ws-pane-heading {
+  margin: 0 -12px 11px;
+  border-radius: 13px 13px 0 0;
+}
+
+.ws-output-heading > label {
+  margin-bottom: 6px;
+  color: #59667d;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.35px;
+  text-transform: uppercase;
+}
+
+.ws-run-input {
+  width: 100%;
+  min-height: 42px;
+  max-height: 110px;
+  resize: vertical;
+  padding: 9px 10px;
+  border: 1px solid #dfe5ef;
+  border-radius: 9px;
+  background: #fbfcfe;
+  color: #29364e;
+  font: 12px/1.5 "Cascadia Code", Consolas, monospace;
+}
+
+.ws-run-input-form {
+  margin-bottom: 9px;
+}
+
+.ws-run-input-form[hidden] {
+  display: none !important;
+}
+
+.ws-run-input-form > label {
+  display: block;
+  margin-bottom: 6px;
+  color: #59667d;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.35px;
+  text-transform: uppercase;
+}
+
+.ws-run-input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.ws-run-input-row .ws-run-input {
+  min-width: 0;
+  flex: 1;
+}
+
+.ws-run-input-row button {
+  min-height: 39px;
+  padding: 7px 12px;
+}
+
+.ws-run-input:focus {
+  outline: 2px solid rgba(102, 126, 234, 0.18);
+  border-color: #7d8ae5;
+}
+
+.ws-output-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.ws-output-heading > label {
+  margin: 0 0 6px;
+}
+
+.ws-output-heading > span {
+  color: #71809a;
+  font-size: 11px;
+}
+
+.ws-run-output {
+  min-height: 76px;
+  flex: 1;
+  overflow: auto;
+  margin: 0 0 10px;
+  padding: 10px;
+  border: 1px solid #e0e5ef;
+  border-radius: 9px;
+  background: #f6f8fc;
+  color: #303d55;
+  font: 12px/1.55 "Cascadia Code", Consolas, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ws-run-console {
+  display: flex;
+  min-height: 140px;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #e0e5ef;
+  border-radius: 9px;
+  background: #f6f8fc;
+}
+
+.ws-run-console .ws-run-output {
+  min-height: 76px;
+  flex: 1;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.ws-run-console .ws-run-input-form {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  margin: 0;
+  padding: 8px 10px 10px;
+}
+
+.ws-run-console [hidden] {
+  display: none !important;
+}
+
+.ws-run-console .ws-run-input-transcript {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  margin: 0 0 8px;
+  padding: 0;
+  color: #303d55;
+  font: 12px/1.55 "Cascadia Code", Consolas, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ws-run-console .ws-run-input-form > label {
+  margin-bottom: 5px;
+  font-size: 10px;
+}
+
+.ws-run-console .ws-run-input {
+  min-height: 36px;
+  max-height: 96px;
+  resize: vertical;
+  border-color: #d7deeb;
+  background: #fff;
+}
+
+.ws-run-console .ws-run-input-row button {
+  min-height: 36px;
+}
+
+.ws-run-button {
+  align-self: flex-end;
+  min-height: 35px;
+  padding: 7px 12px;
+  font-size: 12px;
+}
+
+.ws-run-button:disabled {
+  opacity: 0.65;
+  cursor: wait;
 }
 
 .student-layout .ws-toolbar {
@@ -2285,15 +2643,42 @@ html[data-student-theme="dark"] .public-submit-toolbar .btn-primary {
 
 .public-editor-card {
   min-height: 0;
-  padding: 7px;
+  padding: 0;
   border-radius: 15px;
 }
 
 .public-editor-card .CodeMirror {
-  height: clamp(260px, 42vh, 620px) !important;
-  min-height: 260px;
+  height: 100% !important;
+  min-height: 0;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: 0 0 10px 10px;
+}
+
+.public-code-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(260px, 1fr);
+  flex: 1;
+  min-height: 0;
+  gap: 14px;
+  margin: 0;
+}
+
+.public-code-workbench .ws-editor-area {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  background: #fff;
+}
+
+.public-code-workbench .public-editor-card .CodeMirror {
+  height: 0 !important;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.public-code-workbench .ws-run-panel {
+  min-height: 0;
 }
 
 html[data-student-theme="dark"] .student-layout .desc-content,
@@ -2313,8 +2698,97 @@ html[data-student-theme="dark"] .student-layout .ws-editor-area {
   background: #282a36;
 }
 
+html[data-student-theme="dark"] .student-layout .ws-theme-toggle {
+  border-color: #354158;
+  background: #202a3d;
+  color: #d0d8e6;
+}
+
+html[data-student-theme="dark"] .student-layout .ws-theme-toggle .student-theme-icon {
+  color: #d7ddff;
+}
+
+html[data-student-theme="dark"] .student-layout .ws-theme-toggle:hover {
+  border-color: #4a5a78;
+  background: #29354b;
+}
+
+html[data-student-theme="dark"] .student-layout .ws-pane-heading,
+html[data-student-theme="dark"] .student-layout .ws-run-panel,
+html[data-student-theme="dark"] .public-code-workbench .ws-pane-heading,
+html[data-student-theme="dark"] .public-code-workbench .ws-run-panel {
+  border-color: #303b51;
+  background: #171f30;
+  color: #dce3ef;
+}
+
+html[data-student-theme="dark"] .student-layout .ws-run-input,
+html[data-student-theme="dark"] .public-code-workbench .ws-run-input {
+  border-color: #354158;
+  background: #111a2a;
+  color: #e3e9f3;
+}
+
+html[data-student-theme="dark"] .student-layout .ws-run-console,
+html[data-student-theme="dark"] .public-code-workbench .ws-run-console {
+  border-color: #303b51;
+  background: #111827;
+}
+
+html[data-student-theme="dark"] .student-layout .ws-run-console .ws-run-input-form,
+html[data-student-theme="dark"] .public-code-workbench .ws-run-console .ws-run-input-form {
+  border-color: #303b51;
+}
+
+html[data-student-theme="dark"] .student-layout .ws-run-input-form > label,
+html[data-student-theme="dark"] .public-code-workbench .ws-run-input-form > label {
+  color: #aab5c8;
+}
+
+html[data-student-theme="dark"] .student-layout .ws-run-output,
+html[data-student-theme="dark"] .public-code-workbench .ws-run-output,
+html[data-student-theme="dark"] .student-layout .ws-run-input-transcript,
+html[data-student-theme="dark"] .public-code-workbench .ws-run-input-transcript,
+html[data-student-theme="dark"] .public-workspace .ws-run-input-transcript {
+  border-color: #303b51;
+  background: #111827;
+  color: #d4dbea;
+}
+
+html[data-student-theme="dark"] .student-layout .ws-pane-heading > span,
+html[data-student-theme="dark"] .student-layout .ws-output-heading > label,
+html[data-student-theme="dark"] .student-layout .ws-output-heading > span,
+html[data-student-theme="dark"] .public-code-workbench .ws-pane-heading > span,
+html[data-student-theme="dark"] .public-code-workbench .ws-output-heading > label,
+html[data-student-theme="dark"] .public-code-workbench .ws-output-heading > span {
+  color: #aab5c8;
+}
+
 html[data-student-theme="dark"] .public-editor-card {
   background: #111827;
+}
+
+@media (max-width: 900px) {
+  .student-layout .ws-code-workbench,
+  .public-code-workbench {
+    grid-template-columns: minmax(0, 1fr);
+    overflow-y: auto;
+  }
+
+  .student-layout .ws-editor-area,
+  .public-code-workbench .ws-editor-area {
+    min-height: 300px;
+  }
+
+  .student-layout .ws-editor-area .CodeMirror,
+  .public-code-workbench .public-editor-card .CodeMirror {
+    min-height: 260px;
+  }
+
+  .student-layout .ws-run-panel,
+  .public-code-workbench .ws-run-panel {
+    min-height: 285px;
+  }
 }
 
 @media (max-width: 600px) {
@@ -2324,7 +2798,12 @@ html[data-student-theme="dark"] .public-editor-card {
   }
 
   .student-layout .ws-editor-area {
+    margin: 0;
+  }
+
+  .student-layout .ws-code-workbench {
     margin: 10px 10px 0;
+    gap: 9px;
   }
 
   .student-layout .ws-toolbar {
@@ -2336,9 +2815,8 @@ html[data-student-theme="dark"] .public-editor-card {
     padding: 15px 13px;
   }
 
-  .public-editor-card .CodeMirror {
-    height: 50vh !important;
-    min-height: 260px;
+  .public-code-workbench .public-editor-card .CodeMirror {
+    height: 260px !important;
   }
 }
 
@@ -2618,4 +3096,1483 @@ html[data-student-theme="dark"] .public-sample-cases .sample-case-display-field 
   .public-sample-cases .sample-case-pair {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+.free-practice-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.free-practice-modal-box {
+  max-width: 680px;
+}
+
+.free-practice-mode-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.free-practice-mode-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #dfe5f0;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.free-practice-mode-card.is-selected {
+  border-color: #667eea;
+  background: #f3f4ff;
+}
+
+.free-practice-mode-card input,
+.free-practice-check-all input,
+.free-practice-chapter-option input {
+  margin-top: 3px;
+  accent-color: #667eea;
+}
+
+.free-practice-mode-card span {
+  display: grid;
+  gap: 4px;
+}
+
+.free-practice-mode-card small,
+.free-practice-chapter-option small {
+  color: #687386;
+}
+
+.free-practice-config {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.free-practice-config[hidden] {
+  display: none;
+}
+
+.free-practice-config > label:not(.free-practice-check-all) {
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+.free-practice-field-label {
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+.free-practice-config select,
+.free-practice-config > input {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 11px;
+  border: 1px solid #d5dceb;
+  border-radius: 8px;
+  background: #fff;
+  color: #1e2a4a;
+  font: inherit;
+}
+
+.free-practice-check-all,
+.free-practice-chapter-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.free-practice-check-all {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  font-weight: 600;
+  border-bottom: 1px solid #e1e6f0;
+  border-radius: 0;
+  background: #fff;
+}
+
+.free-practice-chapter-list {
+  max-height: 190px;
+  overflow: auto;
+  border: 1px solid #e1e6f0;
+  border-radius: 8px;
+}
+
+.free-practice-chapter-option + .free-practice-chapter-option {
+  border-top: 1px solid #edf0f5;
+}
+
+.free-practice-chapter-option span {
+  flex: 1;
+}
+
+.free-practice-validation {
+  min-height: 20px;
+  margin: 12px 0 18px;
+  color: #687386;
+  font-size: 13px;
+}
+
+.free-practice-validation.is-error {
+  color: #c0392b;
+}
+
+html[data-student-theme="dark"] .free-practice-mode-card {
+  border-color: #354158;
+}
+
+html[data-student-theme="dark"] .free-practice-mode-card.is-selected {
+  border-color: #8998ff;
+  background: #222b46;
+}
+
+html[data-student-theme="dark"] .free-practice-mode-card small,
+html[data-student-theme="dark"] .free-practice-chapter-option small,
+html[data-student-theme="dark"] .free-practice-validation {
+  color: #aab5c8;
+}
+
+html[data-student-theme="dark"] .free-practice-config select,
+html[data-student-theme="dark"] .free-practice-config > input {
+  border-color: #354158;
+  background: #111827;
+  color: #dce3ef;
+}
+
+html[data-student-theme="dark"] .free-practice-chapter-list {
+  border-color: #354158;
+}
+
+html[data-student-theme="dark"] .free-practice-check-all {
+  border-bottom-color: #303b51;
+  background: #171f30;
+}
+
+html[data-student-theme="dark"] .free-practice-chapter-option + .free-practice-chapter-option {
+  border-top-color: #303b51;
+}
+
+html[data-student-theme="dark"] .free-practice-validation.is-error {
+  color: #ff9292;
+}
+
+@media (max-width: 600px) {
+  .free-practice-page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .free-practice-mode-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Refined student workspace and navigation surfaces */
+.student-layout .teacher-sidebar {
+  border-right: 1px solid #e4e4e7;
+  background: #fff;
+  color: #18181b;
+}
+
+.student-layout .sidebar-brand,
+.student-layout .sidebar-footer {
+  border-color: #e4e4e7;
+}
+
+.student-layout .menu-item {
+  margin: 2px 10px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  color: #52525b;
+}
+
+.student-layout .menu-item:hover,
+.student-layout .menu-item.active {
+  background: #f4f4f5;
+  color: #18181b;
+}
+
+.student-layout .menu-item.active {
+  box-shadow: inset 2px 0 #2563eb;
+}
+
+.student-layout .menu-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  font-size: 16px;
+}
+
+.student-layout .teacher-avatar {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.student-layout .teacher-main {
+  background: #f8fafc;
+  color: #18181b;
+}
+
+.student-layout .page-header h1,
+.student-layout .card-section h2,
+.student-layout .card-section h3,
+.student-layout .chapter-card h3 {
+  color: #18181b;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.student-layout .chapter-card,
+.student-layout .card-section,
+.student-layout .ws-sidebar,
+.student-layout .ws-main,
+.student-layout .exam-password-modal {
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.student-layout .chapter-card::before {
+  display: none;
+}
+
+.student-layout .chapter-card:hover {
+  transform: none;
+  border-color: #d4d4d8;
+  box-shadow: none;
+}
+
+.student-layout .chapter-mode-badge,
+.student-layout .exam-status,
+.student-layout .chapter-complete-badge {
+  border: 1px solid #d4d4d8;
+  border-radius: 6px;
+  background: #f4f4f5;
+  color: #52525b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.student-layout .mode-badge-practice,
+.student-layout .mode-badge-review,
+.student-layout .exam-status-completed,
+.student-layout .exam-status-open,
+.student-layout .exam-status-pending,
+.student-layout .exam-status-closed,
+.student-layout .chapter-complete-badge {
+  border-color: #d4d4d8;
+  background: #f4f4f5;
+  color: #52525b;
+}
+
+.student-layout .btn-primary,
+.student-layout .btn-finish {
+  border: 1px solid #2563eb;
+  border-radius: 8px;
+  background: #2563eb;
+  box-shadow: none;
+}
+
+.student-layout .btn-primary:hover,
+.student-layout .btn-finish:hover {
+  background: #1d4ed8;
+  box-shadow: none;
+  transform: none;
+}
+
+.student-layout .btn-secondary {
+  border-color: #e4e4e7;
+  border-radius: 8px;
+  background: #fff;
+  color: #3f3f46;
+}
+
+.student-layout .btn-secondary:hover {
+  border-color: #d4d4d8;
+  background: #f4f4f5;
+}
+
+.student-layout .data-table,
+.student-layout .history-table {
+  border-color: #e4e4e7;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.student-layout .data-table th,
+.student-layout .history-table th {
+  background: #fafafa;
+  color: #71717a;
+}
+
+.student-layout .data-table td,
+.student-layout .history-table td {
+  padding: 14px 16px;
+}
+
+.student-layout .ws-sidebar,
+.student-layout .ws-main {
+  overflow: hidden;
+}
+
+.student-layout .ws-sidebar-header,
+.student-layout .ws-problem-header,
+.student-layout .ws-toolbar,
+.student-layout .ws-sidebar-footer,
+.student-layout .ws-problem-desc {
+  border-color: #e4e4e7;
+  background: #fff;
+}
+
+.student-layout .timer-box {
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  background: #fafafa;
+  color: #18181b;
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.student-layout .ws-run-output,
+.student-layout .io-examples pre,
+.student-layout .desc-content {
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.student-layout .modal-overlay {
+  background: rgba(9, 9, 11, 0.48);
+  backdrop-filter: blur(2px);
+}
+
+.student-layout .modal-box {
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(9, 9, 11, 0.14);
+}
+
+.public-workspace .public-sidebar,
+.public-workspace .public-main,
+.public-workspace .public-problem-card,
+.public-workspace .public-editor-card,
+.public-workspace .ws-run-panel {
+  border-color: #e4e4e7;
+  background: #fff;
+  color: #18181b;
+}
+
+.public-workspace .public-sidebar {
+  border-right: 1px solid #e4e4e7;
+}
+
+.public-workspace .timer-box,
+.public-workspace #timeText {
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-student-theme="dark"] .student-layout .teacher-sidebar {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #111113;
+  color: #fafafa;
+}
+
+html[data-student-theme="dark"] .student-layout .sidebar-brand,
+html[data-student-theme="dark"] .student-layout .sidebar-footer {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-student-theme="dark"] .student-layout .menu-item {
+  color: #a1a1aa;
+}
+
+html[data-student-theme="dark"] .student-layout .menu-item:hover,
+html[data-student-theme="dark"] .student-layout .menu-item.active {
+  background: #27272a;
+  color: #fafafa;
+}
+
+html[data-student-theme="dark"] .student-layout .teacher-main {
+  background: #09090b;
+  color: #fafafa;
+}
+
+html[data-student-theme="dark"] .student-layout .page-header h1,
+html[data-student-theme="dark"] .student-layout .card-section h2,
+html[data-student-theme="dark"] .student-layout .card-section h3,
+html[data-student-theme="dark"] .student-layout .chapter-card h3,
+html[data-student-theme="dark"] .student-layout .ws-sidebar-header h3,
+html[data-student-theme="dark"] .student-layout .ws-problem-header h2 {
+  color: #fafafa;
+}
+
+html[data-student-theme="dark"] .student-layout .chapter-card,
+html[data-student-theme="dark"] .student-layout .card-section,
+html[data-student-theme="dark"] .student-layout .ws-sidebar,
+html[data-student-theme="dark"] .student-layout .ws-main,
+html[data-student-theme="dark"] .student-layout .exam-password-modal,
+html[data-student-theme="dark"] .student-layout .ws-sidebar-header,
+html[data-student-theme="dark"] .student-layout .ws-problem-header,
+html[data-student-theme="dark"] .student-layout .ws-toolbar,
+html[data-student-theme="dark"] .student-layout .ws-sidebar-footer,
+html[data-student-theme="dark"] .student-layout .ws-problem-desc {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #18181b;
+  color: #e4e4e7;
+  box-shadow: none;
+}
+
+html[data-student-theme="dark"] .student-layout .btn-secondary,
+html[data-student-theme="dark"] .student-layout .timer-box {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: #27272a;
+  color: #e4e4e7;
+}
+
+html[data-student-theme="dark"] .student-layout .data-table th,
+html[data-student-theme="dark"] .student-layout .history-table th {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #18181b;
+  color: #a1a1aa;
+}
+
+html[data-student-theme="dark"] .student-layout .data-table td,
+html[data-student-theme="dark"] .student-layout .history-table td {
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #d4d4d8;
+}
+
+html[data-student-theme="dark"] .student-layout .data-table tbody tr:hover,
+html[data-student-theme="dark"] .student-layout .history-table tbody tr:hover {
+  background: #27272a;
+}
+
+html[data-student-theme="dark"] .public-workspace .public-sidebar,
+html[data-student-theme="dark"] .public-workspace .public-main,
+html[data-student-theme="dark"] .public-workspace .public-problem-card,
+html[data-student-theme="dark"] .public-workspace .public-editor-card,
+html[data-student-theme="dark"] .public-workspace .ws-run-panel {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #111113;
+  color: #e4e4e7;
+}
+
+.student-layout .submit-result {
+  width: fit-content;
+  padding: 5px 9px;
+  border: 1px solid #e4e4e7;
+  border-radius: 6px;
+  background: #f4f4f5;
+  color: #52525b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.student-layout .submit-result.correct,
+.student-layout .summary-item.status-correct strong {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.student-layout .submit-result.partial,
+.student-layout .summary-item.status-partial strong {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.student-layout .submit-result.wrong,
+.student-layout .summary-item.status-wrong strong {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.student-layout .summary-item strong {
+  padding: 4px 8px;
+  border: 1px solid #e4e4e7;
+  border-radius: 6px;
+  background: #f4f4f5;
+  color: #52525b;
+  font-size: 12px;
+}
+
+.student-layout .summary-item.status-pending strong {
+  border-color: #e4e4e7;
+  background: #f4f4f5;
+  color: #52525b;
+}
+
+html[data-student-theme="dark"] .student-layout .submit-result,
+html[data-student-theme="dark"] .student-layout .summary-item strong {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: #27272a;
+  color: #d4d4d8;
+}
+
+html[data-student-theme="dark"] .student-layout .submit-result.correct,
+html[data-student-theme="dark"] .student-layout .summary-item.status-correct strong {
+  border-color: #14532d;
+  background: #10251a;
+  color: #86efac;
+}
+
+html[data-student-theme="dark"] .student-layout .submit-result.partial,
+html[data-student-theme="dark"] .student-layout .summary-item.status-partial strong {
+  border-color: #713f12;
+  background: #2b2110;
+  color: #fcd34d;
+}
+
+html[data-student-theme="dark"] .student-layout .submit-result.wrong,
+html[data-student-theme="dark"] .student-layout .summary-item.status-wrong strong {
+  border-color: #7f1d1d;
+  background: #2a1517;
+  color: #fca5a5;
+}
+
+body.public-exam-workspace-body {
+  background: #f8fafc !important;
+}
+
+.public-workspace .public-sidebar-header,
+.public-workspace .public-sidebar-footer {
+  border-color: #e4e4e7;
+}
+
+.public-workspace .public-sidebar-header h2,
+.public-workspace .public-sidebar-header .public-exam-brand {
+  color: #18181b;
+}
+
+.public-workspace .public-exam-label {
+  color: #71717a;
+}
+
+.public-workspace .public-theme-toggle {
+  border-color: #e4e4e7;
+  background: #fff;
+  color: #3f3f46;
+}
+
+html[data-student-theme="dark"] body.public-exam-workspace-body,
+html[data-student-theme="dark"] .public-workspace {
+  background: #09090b !important;
+}
+
+html[data-student-theme="dark"] .public-workspace .public-sidebar-header,
+html[data-student-theme="dark"] .public-workspace .public-sidebar-footer {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-student-theme="dark"] .public-workspace .public-sidebar-header h2,
+html[data-student-theme="dark"] .public-workspace .public-sidebar-header .public-exam-brand {
+  color: #fafafa;
+}
+
+html[data-student-theme="dark"] .public-workspace .public-exam-label {
+  color: #a1a1aa;
+}
+
+body.student-body-fix,
+body.public-exam-workspace-body,
+.student-layout,
+.student-layout .teacher-main {
+  background: #f0f4fa !important;
+  color: #0f172a;
+}
+
+.student-layout .teacher-sidebar {
+  border-color: rgba(30, 58, 138, 0.12);
+  background: #fff;
+  color: #0f172a;
+}
+
+.student-layout .sidebar-brand,
+.student-layout .sidebar-footer {
+  border-color: rgba(30, 58, 138, 0.12);
+}
+
+.student-layout .menu-item {
+  color: #475569;
+}
+
+.student-layout .menu-item:hover,
+.student-layout .menu-item.active {
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+.student-layout .menu-item.active {
+  box-shadow: inset 2px 0 #4f46e5;
+}
+
+.student-layout :is(.chapter-card, .card-section, .ws-sidebar, .ws-main, .student-submission),
+.public-workspace :is(.public-sidebar, .public-main, .public-problem-card, .public-editor-card, .ws-run-panel) {
+  border-color: rgba(30, 58, 138, 0.12);
+  background: #fff;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+  color: #0f172a;
+}
+
+.student-layout .chapter-card:hover {
+  border-color: rgba(6, 182, 212, 0.42);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08), 0 0 18px rgba(56, 189, 248, 0.12);
+  transform: translateY(-2px);
+}
+
+.student-layout .btn-primary,
+.student-layout .btn-finish,
+.public-workspace .btn-primary {
+  border-color: transparent;
+  background: var(--ui-cta-gradient, linear-gradient(110deg, #4f46e5, #0284c7));
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.16);
+}
+
+.student-layout .btn-primary:hover,
+.student-layout .btn-finish:hover,
+.public-workspace .btn-primary:hover {
+  background: var(--ui-cta-gradient, linear-gradient(110deg, #4f46e5, #0284c7));
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.25);
+  transform: translateY(-1px);
+}
+
+.student-layout .btn-secondary,
+.public-workspace .btn-secondary {
+  border-color: rgba(30, 58, 138, 0.12);
+  background: #f8fafc;
+  color: #334155;
+}
+
+.student-layout .ws-sidebar-header,
+.student-layout .ws-problem-header,
+.student-layout .ws-toolbar,
+.student-layout .ws-sidebar-footer,
+.student-layout .ws-problem-desc,
+.public-workspace .public-sidebar-header,
+.public-workspace .public-sidebar-footer {
+  border-color: rgba(30, 58, 138, 0.12);
+  background: #fff;
+}
+
+.student-layout .data-table,
+.student-layout .history-table,
+.public-workspace .public-problem-card,
+.public-workspace .public-editor-card {
+  border-color: rgba(30, 58, 138, 0.12);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+}
+
+.student-layout .data-table th,
+.student-layout .history-table th {
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.student-layout .modal-overlay {
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(8px);
+}
+
+.student-layout .modal-box {
+  border-color: rgba(30, 58, 138, 0.12);
+  box-shadow: 0 16px 48px rgba(15, 23, 42, 0.16);
+}
+
+.student-layout .timer-box,
+.public-workspace .timer-box,
+.public-workspace #timeText {
+  border-color: rgba(30, 58, 138, 0.12);
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.student-layout :where(input, select, textarea):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.18), 0 0 18px rgba(56, 189, 248, 0.2);
+}
+
+html[data-student-theme="dark"] body.student-body-fix,
+html[data-student-theme="dark"] body.public-exam-workspace-body,
+html[data-student-theme="dark"] .student-layout,
+html[data-student-theme="dark"] .student-layout .teacher-main,
+html[data-student-theme="dark"] .public-workspace {
+  background:
+    radial-gradient(ellipse at 12% 0%, rgba(91, 73, 160, 0.18), transparent 34%),
+    radial-gradient(ellipse at 92% 18%, rgba(8, 145, 178, 0.1), transparent 30%),
+    #0e111a !important;
+  color: #f1f5f9;
+}
+
+html[data-student-theme="dark"] .student-layout .teacher-sidebar,
+html[data-student-theme="dark"] .public-workspace .public-sidebar {
+  border-color: rgba(148, 163, 184, 0.14);
+  background: rgba(28, 28, 40, 0.85);
+  color: #f1f5f9;
+  backdrop-filter: blur(12px);
+}
+
+html[data-student-theme="dark"] .student-layout .sidebar-brand,
+html[data-student-theme="dark"] .student-layout .sidebar-footer,
+html[data-student-theme="dark"] .public-workspace .public-sidebar-header,
+html[data-student-theme="dark"] .public-workspace .public-sidebar-footer {
+  border-color: rgba(148, 163, 184, 0.14);
+}
+
+html[data-student-theme="dark"] .student-layout .menu-item {
+  color: #a1a1b5;
+}
+
+html[data-student-theme="dark"] .student-layout .menu-item:hover,
+html[data-student-theme="dark"] .student-layout .menu-item.active {
+  background: rgba(139, 92, 246, 0.14);
+  color: #f1f5f9;
+}
+
+html[data-student-theme="dark"] .student-layout .menu-item.active {
+  box-shadow: inset 2px 0 #8b5cf6;
+}
+
+html[data-student-theme="dark"] .student-layout :is(
+  .chapter-card,
+  .card-section,
+  .ws-sidebar,
+  .ws-main,
+  .student-submission,
+  .ws-sidebar-header,
+  .ws-problem-header,
+  .ws-toolbar,
+  .ws-sidebar-footer,
+  .ws-problem-desc
+),
+html[data-student-theme="dark"] .public-workspace :is(
+  .public-sidebar,
+  .public-main,
+  .public-problem-card,
+  .public-editor-card,
+  .ws-run-panel
+) {
+  border-color: rgba(148, 163, 184, 0.14);
+  background: rgba(28, 28, 40, 0.85);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  color: #e2e8f0;
+  backdrop-filter: blur(12px);
+}
+
+html[data-student-theme="dark"] .student-layout .chapter-card:hover {
+  border-color: rgba(34, 211, 238, 0.42);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22), 0 0 18px rgba(56, 189, 248, 0.14);
+}
+
+html[data-student-theme="dark"] .student-layout .btn-primary,
+html[data-student-theme="dark"] .student-layout .btn-finish,
+html[data-student-theme="dark"] .public-workspace .btn-primary {
+  background: linear-gradient(110deg, #8b5cf6 0%, #06b6d4 100%);
+}
+
+html[data-student-theme="dark"] .student-layout .btn-secondary,
+html[data-student-theme="dark"] .student-layout .timer-box,
+html[data-student-theme="dark"] .public-workspace .timer-box {
+  border-color: rgba(148, 163, 184, 0.14);
+  background: rgba(14, 17, 26, 0.72);
+  color: #e2e8f0;
+}
+
+html[data-student-theme="dark"] .student-layout :where(input, select, textarea):focus-visible {
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2), 0 0 18px rgba(56, 189, 248, 0.25);
+}
+
+html[data-student-theme="dark"] .student-layout .data-table,
+html[data-student-theme="dark"] .student-layout .history-table {
+  border-color: rgba(148, 163, 184, 0.14);
+  background: rgba(28, 28, 40, 0.85);
+  color: #e2e8f0;
+}
+
+html[data-student-theme="dark"] .student-layout .data-table th,
+html[data-student-theme="dark"] .student-layout .history-table th {
+  border-color: rgba(148, 163, 184, 0.14);
+  background: rgba(14, 17, 26, 0.72);
+  color: #a1a1b5;
+}
+
+html[data-student-theme="dark"] .student-layout .data-table td,
+html[data-student-theme="dark"] .student-layout .history-table td {
+  border-color: rgba(148, 163, 184, 0.14);
+  color: #e2e8f0;
+}
+
+html[data-student-theme="dark"] .student-layout .modal-overlay {
+  background: rgba(3, 6, 14, 0.7);
+  backdrop-filter: blur(10px);
+}
+
+html[data-student-theme="dark"] .student-layout .modal-box {
+  border-color: rgba(148, 163, 184, 0.14);
+  background: rgba(28, 28, 40, 0.92);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(12px);
+}
+
+.student-layout .chapter-card,
+.student-layout .card-section,
+.student-layout .btn-primary,
+.student-layout .btn-finish,
+.student-layout .btn-secondary {
+  transition:
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.25s ease,
+    background-color 0.25s ease,
+    box-shadow 0.25s ease,
+    color 0.25s ease;
+}
+
+.student-layout .attempt-status-active::before {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: #06b6d4;
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.45);
+  content: "";
+  animation: ui-live-pulse 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-layout .attempt-status-active::before {
+    animation: none;
+  }
+}
+
+.student-layout .btn-primary,
+.student-layout .btn-finish {
+  position: relative;
+  overflow: hidden;
+}
+
+.student-layout .btn-primary::after,
+.student-layout .btn-finish::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 20%, rgba(255, 255, 255, 0.24) 48%, transparent 76%);
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-120%);
+}
+
+.student-layout .btn-primary:hover::after,
+.student-layout .btn-finish:hover::after {
+  opacity: 1;
+  animation: ui-button-shimmer 0.7s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-layout .btn-primary::after,
+  .student-layout .btn-finish::after {
+    animation: none !important;
+  }
+}
+
+body.student-body-fix,
+body.public-exam-workspace-body,
+.student-layout,
+.student-layout .teacher-main,
+.public-workspace {
+  background: var(--bg-gradient) !important;
+  color: var(--text-primary);
+}
+
+.student-layout .teacher-sidebar,
+.public-workspace .public-sidebar {
+  border-color: var(--card-border);
+  background: var(--sidebar-bg);
+  color: var(--text-primary);
+  backdrop-filter: blur(14px);
+}
+
+.student-layout .sidebar-brand,
+.student-layout .sidebar-footer,
+.public-workspace .public-sidebar-header,
+.public-workspace .public-sidebar-footer {
+  border-color: var(--card-border);
+}
+
+.student-layout .menu-item {
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    color 0.2s ease;
+}
+
+.student-layout .menu-item:hover {
+  background: var(--sidebar-hover-bg);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.student-layout .menu-item.active {
+  border: 1px solid var(--sidebar-active-border);
+  background: var(--sidebar-active-bg);
+  box-shadow: var(--glow);
+  color: var(--sidebar-active-text);
+}
+
+.student-layout .teacher-avatar {
+  background: var(--accent-6);
+  color: var(--accent-2);
+}
+
+.student-layout .student-theme-toggle,
+.student-layout .btn-logout-small,
+.public-workspace .public-theme-toggle {
+  border: 1px solid var(--card-border);
+  background: var(--sidebar-bg);
+  color: var(--text-primary);
+  backdrop-filter: blur(14px);
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    color 0.2s ease;
+}
+
+.student-layout .student-theme-toggle:hover,
+.student-layout .btn-logout-small:hover,
+.public-workspace .public-theme-toggle:hover {
+  border-color: var(--sidebar-active-border);
+  background: var(--sidebar-hover-bg);
+  box-shadow: var(--card-hover-shadow);
+  transform: translateY(-1px);
+}
+
+.student-layout .page-header h1,
+.student-layout .card-section h2,
+.student-layout .card-section h3,
+.student-layout .chapter-card h3,
+.student-layout .ws-sidebar-header h3,
+.student-layout .ws-problem-header h2,
+.student-layout .student-chapter-heading h2 {
+  color: var(--text-primary);
+}
+
+.student-layout .subtitle,
+.student-layout .chapter-meta,
+.student-layout .ws-context-name,
+.student-layout .student-chapter-heading p {
+  color: var(--text-secondary);
+}
+
+.student-layout :is(
+  .chapter-card,
+  .card-section,
+  .ws-sidebar,
+  .ws-main,
+  .ws-sidebar-header,
+  .ws-problem-header,
+  .ws-toolbar,
+  .ws-sidebar-footer,
+  .ws-problem-desc,
+  .student-submission,
+  .exam-password-modal
+),
+.public-workspace :is(
+  .public-sidebar,
+  .public-main,
+  .public-problem-card,
+  .public-editor-card,
+  .ws-run-panel
+) {
+  border-color: var(--card-border);
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+  color: var(--text-primary);
+  backdrop-filter: blur(14px);
+}
+
+.student-layout .chapter-card,
+.student-layout .card-section {
+  transition:
+    transform 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.24s ease,
+    box-shadow 0.24s ease,
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+.student-layout .chapter-card:hover {
+  border-color: var(--accent-hover);
+  box-shadow: var(--card-hover-shadow);
+  transform: translateY(-4px);
+}
+
+.student-layout .chapter-mode-badge {
+  border: 1px solid var(--practice-badge-border);
+  background: var(--practice-badge-bg);
+  color: var(--practice-badge-text);
+}
+
+.student-layout .mode-badge-practice {
+  border-color: var(--practice-badge-border);
+  background: var(--practice-badge-bg);
+  color: var(--practice-badge-text);
+}
+
+.student-layout .mode-badge-review {
+  border-color: var(--sidebar-active-border);
+  background: var(--status-days-purple-bg);
+  color: var(--status-days-purple-text);
+}
+
+.student-layout .chapter-complete-badge,
+.student-layout .exam-status-completed,
+.student-layout .exam-status-open {
+  border-color: var(--success);
+  background: var(--status-ready-bg);
+  color: var(--status-ready-text);
+}
+
+.student-layout .exam-status-pending {
+  border-color: var(--accent-3);
+  background: var(--status-days-blue-bg);
+  color: var(--status-days-blue-text);
+}
+
+.student-layout .exam-status-closed {
+  border-color: var(--card-border);
+  background: var(--track-bg);
+  color: var(--text-secondary);
+}
+
+.student-layout .exam-status-open::before,
+.student-layout .attempt-status-active::before {
+  background: var(--success);
+  box-shadow: 0 0 10px var(--status-pulse);
+}
+
+.student-layout .exam-status-open::before {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  content: "";
+  animation: ui-live-pulse 1.8s ease-in-out infinite;
+}
+
+.student-layout .btn-primary,
+.student-layout .btn-finish,
+.public-workspace .btn-primary {
+  border-color: transparent;
+  background: var(--accent-cta-gradient);
+  box-shadow: var(--glow);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.3s ease;
+}
+
+.student-layout .btn-primary:hover,
+.student-layout .btn-finish:hover,
+.public-workspace .btn-primary:hover {
+  background: var(--accent-cta-gradient);
+  box-shadow: var(--glow);
+  transform: translateY(-1px);
+}
+
+.student-layout .btn-secondary,
+.public-workspace .btn-secondary {
+  border-color: var(--card-border);
+  background: var(--card-bg);
+  color: var(--text-primary);
+}
+
+.student-layout :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea),
+.public-workspace :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  border-color: var(--input-border);
+  background: var(--input-bg);
+  color: var(--input-text);
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.2s ease;
+}
+
+.student-layout :where(input, select, textarea):focus-visible,
+.public-workspace :where(input, select, textarea):focus-visible {
+  border-color: var(--accent-3);
+  box-shadow: var(--ui-focus-glow);
+  outline: none;
+}
+
+.student-layout .data-table,
+.student-layout .history-table,
+.public-workspace .public-problem-card,
+.public-workspace .public-editor-card {
+  border-color: var(--card-border);
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+}
+
+.student-layout .data-table th,
+.student-layout .history-table th {
+  border-color: var(--card-border);
+  background: var(--sidebar-bg);
+  color: var(--text-secondary);
+}
+
+.student-layout .data-table td,
+.student-layout .history-table td {
+  border-color: var(--card-border);
+  color: var(--text-primary);
+}
+
+.student-layout .data-table tbody tr:hover,
+.student-layout .history-table tbody tr:hover {
+  background: var(--sidebar-hover-bg);
+}
+
+.student-layout .timer-box,
+.public-workspace .timer-box,
+.public-workspace #timeText {
+  border-color: var(--card-border);
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+.student-layout .modal-overlay {
+  background: var(--overlay-bg);
+  backdrop-filter: blur(10px);
+}
+
+.student-layout .modal-box,
+.student-layout .exam-password-modal {
+  border-color: var(--card-border);
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+  color: var(--text-primary);
+  backdrop-filter: blur(14px);
+}
+
+html[data-student-theme="dark"] body.student-body-fix,
+html[data-student-theme="dark"] body.public-exam-workspace-body,
+html[data-student-theme="dark"] .student-layout,
+html[data-student-theme="dark"] .student-layout .teacher-main,
+html[data-student-theme="dark"] .public-workspace {
+  background: var(--bg-gradient) !important;
+  color: var(--text-primary);
+}
+
+html[data-student-theme="dark"] .student-layout .teacher-sidebar,
+html[data-student-theme="dark"] .public-workspace .public-sidebar {
+  border-color: var(--card-border);
+  background: var(--sidebar-bg);
+  color: var(--text-primary);
+}
+
+html[data-student-theme="dark"] .student-layout :is(
+  .page-header h1,
+  .card-section h2,
+  .card-section h3,
+  .chapter-card h3,
+  .ws-sidebar-header h3,
+  .ws-problem-header h2,
+  .student-chapter-heading h2
+) {
+  color: var(--text-primary);
+}
+
+html[data-student-theme="dark"] .student-layout :is(
+  .subtitle,
+  .chapter-meta,
+  .ws-context-name,
+  .student-chapter-heading p
+) {
+  color: var(--text-secondary);
+}
+
+html[data-student-theme="dark"] .student-layout .menu-item {
+  color: var(--text-secondary);
+}
+
+html[data-student-theme="dark"] .student-layout .menu-item:hover,
+html[data-student-theme="dark"] .student-layout .menu-item.active {
+  background: var(--sidebar-active-bg);
+  color: var(--sidebar-active-text);
+}
+
+html[data-student-theme="dark"] .student-layout .menu-item.active {
+  border-color: var(--sidebar-active-border);
+  box-shadow: var(--glow);
+}
+
+html[data-student-theme="dark"] .student-layout :is(
+  .chapter-card,
+  .card-section,
+  .ws-sidebar,
+  .ws-main,
+  .ws-sidebar-header,
+  .ws-problem-header,
+  .ws-toolbar,
+  .ws-sidebar-footer,
+  .ws-problem-desc,
+  .student-submission,
+  .exam-password-modal
+),
+html[data-student-theme="dark"] .public-workspace :is(
+  .public-sidebar,
+  .public-main,
+  .public-problem-card,
+  .public-editor-card,
+  .ws-run-panel
+) {
+  border-color: var(--card-border);
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+  color: var(--text-primary);
+  backdrop-filter: blur(14px);
+}
+
+html[data-student-theme="dark"] .student-layout .chapter-card:hover {
+  border-color: var(--accent-hover);
+  box-shadow: var(--card-hover-shadow);
+}
+
+html[data-student-theme="dark"] .student-layout .btn-primary,
+html[data-student-theme="dark"] .student-layout .btn-finish,
+html[data-student-theme="dark"] .public-workspace .btn-primary {
+  border-color: transparent;
+  background: var(--accent-cta-gradient);
+  box-shadow: var(--glow);
+}
+
+html[data-student-theme="dark"] .student-layout .btn-primary:hover,
+html[data-student-theme="dark"] .student-layout .btn-finish:hover,
+html[data-student-theme="dark"] .public-workspace .btn-primary:hover {
+  background: var(--accent-cta-gradient);
+  box-shadow: var(--glow);
+}
+
+html[data-student-theme="dark"] .student-layout .chapter-mode-badge,
+html[data-student-theme="dark"] .student-layout .mode-badge-practice {
+  border-color: var(--practice-badge-border);
+  background: var(--practice-badge-bg);
+  color: var(--practice-badge-text);
+}
+
+html[data-student-theme="dark"] .student-layout .chapter-complete-badge,
+html[data-student-theme="dark"] .student-layout .exam-status-completed,
+html[data-student-theme="dark"] .student-layout .exam-status-open {
+  border-color: var(--success);
+  background: var(--status-ready-bg);
+  color: var(--status-ready-text);
+}
+
+html[data-student-theme="dark"] .student-layout .exam-status-pending {
+  border-color: var(--accent-3);
+  background: var(--status-days-blue-bg);
+  color: var(--status-days-blue-text);
+}
+
+html[data-student-theme="dark"] .student-layout .exam-status-closed {
+  border-color: var(--card-border);
+  background: var(--track-bg);
+  color: var(--text-secondary);
+}
+
+html[data-student-theme="dark"] .student-layout .btn-secondary,
+html[data-student-theme="dark"] .public-workspace .btn-secondary {
+  border-color: var(--card-border);
+  background: var(--card-bg);
+  color: var(--text-primary);
+}
+
+html[data-student-theme="dark"] .student-layout .data-table,
+html[data-student-theme="dark"] .student-layout .history-table {
+  border-color: var(--card-border);
+  background: var(--card-bg);
+}
+
+html[data-student-theme="dark"] .student-layout .data-table th,
+html[data-student-theme="dark"] .student-layout .history-table th {
+  border-color: var(--card-border);
+  background: var(--sidebar-bg);
+  color: var(--text-secondary);
+}
+
+html[data-student-theme="dark"] .student-layout .data-table td,
+html[data-student-theme="dark"] .student-layout .history-table td {
+  border-color: var(--card-border);
+  color: var(--text-primary);
+}
+
+html[data-student-theme="dark"] .student-layout .modal-overlay {
+  background: var(--overlay-bg);
+}
+
+html[data-student-theme="dark"] .student-layout .modal-box,
+html[data-student-theme="dark"] .student-layout .exam-password-modal {
+  border-color: var(--card-border);
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+  color: var(--text-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-layout .exam-status-open::before,
+  .student-layout .attempt-status-active::before {
+    animation: none !important;
+  }
+}
+
+.student-layout .teacher-name {
+  color: var(--text-primary);
+}
+
+.public-workspace .public-sidebar-header h2,
+.public-workspace .public-sidebar-header .public-exam-brand {
+  color: var(--text-primary);
+}
+
+.public-workspace .public-exam-label {
+  color: var(--accent-2);
+}
+
+.public-workspace .question-button {
+  border-color: var(--card-border);
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+.public-workspace .question-button:hover,
+.public-workspace .question-button.active {
+  border-color: var(--accent-3);
+  background: var(--sidebar-active-bg);
+  color: var(--sidebar-active-text);
+}
+
+.public-workspace .question-button.correct {
+  border-color: var(--success);
+  background: var(--status-ready-bg);
+  color: var(--status-ready-text);
+}
+
+.public-workspace .question-button.partial {
+  border-color: var(--status-days-purple-text);
+  background: var(--status-days-purple-bg);
+  color: var(--status-days-purple-text);
+}
+
+.public-workspace .question-button.wrong {
+  border-color: var(--danger);
+  background: var(--status-danger-bg);
+  color: var(--danger);
+}
+
+html[data-student-theme="dark"] .student-layout :is(
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea
+),
+html[data-student-theme="dark"] .public-workspace :is(
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea
+) {
+  border-color: var(--input-border);
+  background: var(--input-bg);
+  color: var(--input-text);
+}
+
+html[data-student-theme="dark"] .student-layout :is(
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea
+):focus,
+html[data-student-theme="dark"] .public-workspace :is(
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea
+):focus {
+  border-color: var(--accent-3);
+  background: var(--input-bg);
+  color: var(--input-text);
+}
+
+html[data-student-theme="dark"] .student-layout input::placeholder,
+html[data-student-theme="dark"] .student-layout textarea::placeholder,
+html[data-student-theme="dark"] .public-workspace input::placeholder,
+html[data-student-theme="dark"] .public-workspace textarea::placeholder {
+  color: var(--input-placeholder) !important;
+  opacity: 1;
+}
+
+.ws-console-heading-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ws-console-heading-actions > span {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.ws-console-clear {
+  min-height: 26px;
+  padding: 3px 8px;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11px;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.ws-console-clear:hover {
+  border-color: var(--accent-3);
+  background: var(--sidebar-active-bg);
+  color: var(--text-primary);
+}
+
+.student-layout .timer-box,
+.student-layout .timer-box.warning,
+.public-workspace .timer-box,
+.public-workspace .timer-box.warning,
+.public-workspace #timeText {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-student-theme="dark"] .student-layout .timer-box,
+html[data-student-theme="dark"] .student-layout .timer-box.warning,
+html[data-student-theme="dark"] .public-workspace .timer-box,
+html[data-student-theme="dark"] .public-workspace .timer-box.warning,
+html[data-student-theme="dark"] .public-workspace #timeText {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
 }

@@ -38,7 +38,7 @@
       document.body.appendChild(warningEl);
     }
     warningEl.innerHTML = `
-      ⚠️ Bạn sắp bị đăng xuất do không hoạt động.<br>
+       Bạn sắp bị đăng xuất do không hoạt động.<br>
       Còn <strong>${secondsLeft}</strong> giây. Di chuyển chuột để tiếp tục.
     `;
   }
@@ -83,11 +83,8 @@
       });
 
       if (res.status === 401) {
-        // Bị đá (another_login / idle_timeout / session_not_found)
-        const data = await res.json().catch(() => ({}));
-        let reason = data.reason || "session_not_found";
-        if (reason.startsWith("revoked:")) reason = reason.split(":")[1];
-        window.location.href = `/login?expired=${reason}`;
+        window.handleSessionUnauthorized();
+        return;
       }
     } catch (_) { /* lỗi mạng, bỏ qua */ }
   }, PING_INTERVAL_MS);
@@ -98,10 +95,14 @@
     if (loggingOut) return;
     loggingOut = true;
     try {
-      await fetch("/api/auth/logout", {
+      const response = await fetch("/api/auth/logout", {
         method: "POST",
         credentials: "include",
       });
+      if (response.status === 401) {
+        window.handleSessionUnauthorized();
+        return;
+      }
     } catch (_) { /* ignore */ }
     window.location.href = `/login?expired=${reason}`;
   }
@@ -117,10 +118,8 @@
     try {
       const res = await fetch("/api/auth/me", { credentials: "include" });
       if (res.status === 401) {
-        const data = await res.json().catch(() => ({}));
-        let reason = data.reason || "session_not_found";
-        if (reason.startsWith("revoked:")) reason = reason.split(":")[1];
-        window.location.href = `/login?expired=${reason}`;
+        window.handleSessionUnauthorized();
+        return;
       }
     } catch (_) {}
   });

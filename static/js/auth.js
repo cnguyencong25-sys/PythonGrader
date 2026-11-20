@@ -11,6 +11,19 @@ function showMessage(text, type = "error") {
   msgEl.className = "message " + type;
 }
 
+function dispatchLoginResult(success) {
+  let playback = Promise.resolve();
+  window.dispatchEvent(new CustomEvent("python-grader:login-result", {
+    detail: {
+      success,
+      waitUntil(promise) {
+        playback = Promise.resolve(promise);
+      },
+    },
+  }));
+  return playback;
+}
+
 async function postJSON(url, body) {
   const res = await fetch(url, {
     method: "POST",
@@ -29,7 +42,7 @@ const loginForm = document.getElementById("loginForm");
 if (loginForm) {
   loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const btn = loginForm.querySelector("button");
+    const btn = loginForm.querySelector('button[type="submit"]');
     btn.disabled = true;
     showMessage("Đang xử lý...", "");
 
@@ -40,14 +53,18 @@ if (loginForm) {
       });
 
       if (!ok || !data.success) {
+        dispatchLoginResult(false);
         showMessage(data.message || "Đăng nhập thất bại.");
         btn.disabled = false;
         return;
       }
 
+      const mascotPlayback = dispatchLoginResult(true);
       showMessage("Đăng nhập thành công! Đang chuyển...", "success");
+      await mascotPlayback;
       window.location.href = data.redirect;
     } catch (err) {
+      dispatchLoginResult(false);
       showMessage("Lỗi kết nối máy chủ.");
       btn.disabled = false;
     }
@@ -61,7 +78,7 @@ const registerForm = document.getElementById("registerForm");
 if (registerForm) {
   registerForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const btn = registerForm.querySelector("button");
+    const btn = registerForm.querySelector('button[type="submit"]');
     btn.disabled = true;
     showMessage("Đang xử lý...", "");
 
@@ -69,6 +86,7 @@ if (registerForm) {
     const confirm = document.getElementById("confirm_password").value;
 
     if (password !== confirm) {
+      dispatchLoginResult(false);
       showMessage("Mật khẩu xác nhận không khớp.");
       btn.disabled = false;
       return;
@@ -82,14 +100,18 @@ if (registerForm) {
       });
 
       if (!ok || !data.success) {
+        dispatchLoginResult(false);
         showMessage(data.message || "Đăng ký thất bại.");
         btn.disabled = false;
         return;
       }
 
+      const mascotPlayback = dispatchLoginResult(true);
       showMessage("Đăng ký thành công! Đang chuyển...", "success");
-      setTimeout(() => (window.location.href = data.redirect), 600);
+      await mascotPlayback;
+      window.location.href = data.redirect;
     } catch (err) {
+      dispatchLoginResult(false);
       showMessage("Lỗi kết nối máy chủ.");
       btn.disabled = false;
     }
@@ -102,7 +124,7 @@ const profileForm = document.getElementById("profileForm");
 if (profileForm) {
   profileForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const btn = profileForm.querySelector("button");
+    const btn = profileForm.querySelector('button[type="submit"]');
     btn.disabled = true;
     showMessage("Đang lưu...", "");
 

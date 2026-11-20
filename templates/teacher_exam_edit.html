@@ -4,11 +4,16 @@
 {% block content %}
 <div class="page-header">
   <div>
-    <a href="/teacher/exams" class="btn-back-inline">← Quay lại</a>
-    <h1>⚙️ Cấu hình bài kiểm tra</h1>
+    <a href="/teacher/exams" class="btn-back-inline">Quay lại</a>
+    <h1>Cấu hình bài kiểm tra</h1>
     <p class="subtitle">Quản lý lịch tổ chức, quyền truy cập và đề thi.</p>
   </div>
-  <a href="/teacher/exams/{{ exam.id }}/scores" class="btn-primary exam-score-link">📊 Quản lý điểm</a>
+  <div class="exam-config-header-actions">
+    {% if exam.anti_cheat_enabled %}
+    <a href="/teacher/exams/{{ exam.id }}/monitor" class="btn-secondary"> Giám sát kiểm tra</a>
+    {% endif %}
+    <a href="/teacher/exams/{{ exam.id }}/scores" class="btn-primary exam-score-link">Quản lý điểm</a>
+  </div>
 </div>
 
 <div id="message" class="message"></div>
@@ -16,7 +21,6 @@
 <!-- THÔNG TIN BÀI KIỂM TRA -->
 <section class="card-section exam-config-card">
   <div class="exam-section-heading">
-    <span class="exam-section-icon">01</span>
     <div>
       <h2>Thông tin & thời gian</h2>
       <p>Thiết lập lịch tổ chức và quy chế làm bài.</p>
@@ -62,17 +66,24 @@
           <span>Gỡ mật khẩu phòng thi</span>
         </label>
       </div>
+
+      <div class="exam-field exam-field-full">
+        <label class="exam-checkbox-row" for="antiCheatEnabled">
+          <input type="checkbox" id="antiCheatEnabled" {% if exam.anti_cheat_enabled %}checked{% endif %}>
+          <span>Chế độ chống gian lận</span>
+        </label>
+        <small>Khi bật, hệ thống giám sát việc rời màn hình, đổi thiết bị và cho phép giáo viên theo dõi/chặn bài thi.</small>
+      </div>
     </div>
 
     <div class="form-actions exam-form-actions">
-      <button type="submit" class="btn-primary">💾 Lưu thay đổi</button>
+      <button type="submit" class="btn-primary">Lưu thay đổi</button>
     </div>
   </form>
 </section>
 
 <section class="card-section exam-config-card">
   <div class="exam-section-heading">
-    <span class="exam-section-icon">02</span>
     <div>
       <h2>Ngân hàng câu hỏi</h2>
       <p>Chọn chương và số câu hệ thống sẽ lấy ngẫu nhiên cho mỗi sinh viên.</p>
@@ -80,7 +91,7 @@
   </div>
   <div id="chapterRules"></div>
   <div class="exam-rule-actions">
-    <button type="button" class="btn-secondary" id="addChapterRule">＋ Thêm chương</button>
+    <button type="button" class="btn-secondary" id="addChapterRule">Thêm chương</button>
     <button type="button" class="btn-primary" id="saveChapterRules">Lưu cấu hình câu hỏi</button>
   </div>
   <div id="chapterRuleMessage" class="message"></div>
@@ -90,7 +101,7 @@
 <section class="card-section exam-config-card">
   <div class="section-title-row">
     <h2>Danh sách bài tập (<span id="exerciseCountBadge">{{ exam.exercises|length }}</span>)</h2>
-    <a href="/teacher/exams/{{ exam.id }}/exercises/new" class="btn-primary">➕ Thêm bài tập</a>
+    <a href="/teacher/exams/{{ exam.id }}/exercises/new" class="btn-primary"> Thêm bài tập</a>
   </div>
 
   <div id="exerciseList" class="exercise-list">
@@ -99,15 +110,15 @@
         <div class="exercise-item" data-id="{{ ex.id }}">
           <div class="exercise-item-main">
             <div class="exercise-item-title">{{ ex.title }}</div>
-            <div class="exercise-item-meta">🧪 {{ ex.test_cases|length }} test case</div>
+            <div class="exercise-item-meta"> {{ ex.test_cases|length }} test case</div>
           </div>
            <div class="exercise-item-actions">
             <button class="btn-toggle-small {% if ex.is_published %}btn-warning{% else %}btn-success{% endif %}" 
                     data-id="{{ ex.id }}" data-publish="{{ '1' if ex.is_published else '0' }}">
-              {% if ex.is_published %}👁️ Ẩn bài{% else %}👁️‍🗨️ Xuất bản{% endif %}
+              {% if ex.is_published %} Ẩn bài{% else %} Xuất bản{% endif %}
             </button>
-            <a href="/teacher/exams/exercises/{{ ex.id }}/edit" class="btn-edit-small">✏️ Sửa</a>
-            <button class="btn-delete-small" data-id="{{ ex.id }}">🗑 Xoá</button>
+            <a href="/teacher/exams/exercises/{{ ex.id }}/edit" class="btn-edit-small"> Sửa</a>
+            <button class="btn-delete-small" data-id="{{ ex.id }}">Xoá</button>
           </div>
         </div>
       {% endfor %}

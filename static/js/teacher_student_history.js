@@ -70,7 +70,7 @@ function renderAttempts(attempts) {
 
     let retakeControl = "";
     if (isLatest && attempt.retake_allowed) {
-      retakeControl = '<span class="retake-status">✓ Đã cấp lượt làm lại</span>';
+      retakeControl = '<span class="retake-status">Đã cấp lượt làm lại</span>';
     } else if (isLatest) {
       retakeControl = `<button type="button" class="btn-primary allow-retake-button"
         data-exam-id="${attempt.exam_id}" data-exam-name="${escapeHtml(attempt.exam_name)}">

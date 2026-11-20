@@ -8,9 +8,9 @@
 <body>
   <div class="dashboard-wrapper">
     <header class="dash-header">
-      <h1>🐍 Giáo viên — {{ user.full_name }}</h1>
+      <h1>Giáo viên — {{ user.full_name }}</h1>
       <div class="user-info">
-        <a href="/profile" class="btn-back">🖥 Quản lý phiên</a>
+        <a href="/profile" class="btn-back"> Quản lý phiên</a>
         <button id="logoutBtn" class="btn-logout">Đăng xuất</button>
       </div>
     </header>
@@ -25,6 +25,7 @@
       window.location.href = "/login";
     });
   </script>
+  <script src="/static/js/auth_session_guard.js"></script>
   <script src="/static/js/idle_timeout.js"></script>
 </body>
 </html>

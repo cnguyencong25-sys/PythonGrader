@@ -12,11 +12,13 @@ from extensions import db
 from models import (
     Chapter,
     ChapterSession,
+    ChapterSubmission,
     Exam,
     ExamChapterRule,
     ExamExercise,
     ExamSession,
     Exercise,
+    PublicExamSession,
     VN_TZ,
     User,
 )
@@ -69,6 +71,52 @@ class PublicExamFlowTests(unittest.TestCase):
             },
         )
 
+    def test_chapter_student_responses_do_not_expose_generator_or_solution_code(self):
+        with self.app.app_context():
+            student = User(email="chapter-student@example.invalid", role="student")
+            student.set_password("test-password")
+            db.session.add(student)
+            db.session.flush()
+
+            chapter = Chapter(name="Chương bí mật", teacher_id=1)
+            db.session.add(chapter)
+            db.session.flush()
+
+            exercise = Exercise(
+                chapter_id=chapter.id,
+                title="Bài bí mật",
+                description="Mo ta bai tap",
+                is_published=True,
+                generator_code="# STUDENT_MUST_NOT_SEE_GENERATOR",
+                solution_code="# STUDENT_MUST_NOT_SEE_SOLUTION",
+            )
+            db.session.add(exercise)
+            db.session.flush()
+
+            session = ChapterSession(user_id=student.id, chapter_id=chapter.id)
+            db.session.add(session)
+            db.session.flush()
+
+            chapter_id = chapter.id
+            session_id = session.id
+            token = create_access_token(
+                identity=str(student.id),
+                additional_claims={"role": "student"},
+            )
+            db.session.commit()
+
+        self.client.set_cookie("access_token_cookie", token)
+
+        chapter_response = self.client.get(f"/api/student/chapters/{chapter_id}")
+        self.assertEqual(chapter_response.status_code, 200)
+        self.assertNotIn("generator_code", chapter_response.get_json()["chapter"]["exercises"][0])
+        self.assertNotIn("solution_code", chapter_response.get_json()["chapter"]["exercises"][0])
+
+        session_response = self.client.get(f"/api/student/sessions/{session_id}")
+        self.assertEqual(session_response.status_code, 200)
+        self.assertNotIn("generator_code", session_response.get_json()["chapter"]["exercises"][0])
+        self.assertNotIn("solution_code", session_response.get_json()["chapter"]["exercises"][0])
+
     def test_password_is_required_and_session_can_be_resumed_and_reviewed(self):
         response = self.client.get(f"/api/public-exams/{self.access_code}")
         self.assertTrue(response.json["password_configured"])
@@ -81,6 +129,24 @@ class PublicExamFlowTests(unittest.TestCase):
         session_id = started.json["session_id"]
         token = started.json["session_token"]
         headers = {"X-Exam-Session-Token": token}
+        run_result = self.client.post(
+            f"/api/public-exams/sessions/{session_id}/run",
+            json={
+                "question_id": "exam-1",
+                "code": "name = input()\nprint('Hello ' + name)",
+                "input": "Minh",
+            },
+            headers=headers,
+        )
+        self.assertEqual(run_result.status_code, 200)
+        self.assertEqual(run_result.json["stdout"], "Hello Minh\n")
+        self.assertEqual(run_result.json["stderr"], "")
+        self.assertEqual(
+            self.client.get(
+                f"/api/public-exams/sessions/{session_id}", headers=headers
+            ).json["submissions"],
+            {},
+        )
         draft = self.client.post(
             f"/api/public-exams/sessions/{session_id}/save-draft",
             json={"question_id": "exam-1", "code": "print(1)"},
@@ -128,6 +194,34 @@ class PublicExamFlowTests(unittest.TestCase):
         self.assertEqual(public_row["submissions"][0]["question_key"], "exam-1")
         self.assertEqual(public_row["submissions"][0]["title"], "Câu 1")
         self.assertEqual(public_row["submissions"][0]["code"], "print(1)")
+
+    def test_public_exam_anti_cheat_can_be_disabled(self):
+        with self.app.app_context():
+            exam = Exam.query.filter_by(access_code=self.access_code).one()
+            exam.anti_cheat_enabled = False
+            db.session.commit()
+
+        started = self.start_exam()
+        self.assertEqual(started.status_code, 201)
+        session_id = started.json["session_id"]
+        headers = {"X-Exam-Session-Token": started.json["session_token"]}
+        workspace = self.client.get(
+            f"/api/public-exams/sessions/{session_id}",
+            headers=headers,
+        )
+        self.assertEqual(workspace.status_code, 200)
+        self.assertFalse(workspace.json["exam"]["anti_cheat_enabled"])
+
+        violation = self.client.post(
+            f"/api/public-exams/sessions/{session_id}/violation",
+            headers=headers,
+        )
+        self.assertEqual(violation.status_code, 200)
+        self.assertTrue(violation.json["ignored"])
+        self.assertEqual(violation.json["violation_count"], 0)
+        with self.app.app_context():
+            session = db.session.get(PublicExamSession, session_id)
+            self.assertEqual(session.violation_count, 0)
 
     def test_public_exam_questions_share_ten_points(self):
         with self.app.app_context():
@@ -238,6 +332,69 @@ class PublicExamFlowTests(unittest.TestCase):
         self.assertEqual(logo.mimetype, "image/png")
         logo.close()
 
+    def test_guest_homepage_shows_welcome_and_keeps_login_route(self):
+        welcome_page = self.client.get("/")
+        self.assertEqual(welcome_page.status_code, 200)
+        self.assertIn(b'id="welcomeTitle"', welcome_page.data)
+        self.assertIn(b'href="/login"', welcome_page.data)
+        self.assertIn(b"/static/css/welcome.css", welcome_page.data)
+        self.assertIn(b"/static/js/welcome.js", welcome_page.data)
+
+        login_page = self.client.get("/login")
+        self.assertEqual(login_page.status_code, 200)
+        self.assertIn(b'id="loginForm"', login_page.data)
+
+    def test_login_and_register_pages_load_auth_transition(self):
+        login_page = self.client.get("/login")
+        register_page = self.client.get("/register")
+
+        self.assertIn(b"/static/js/auth_transition.js", login_page.data)
+        self.assertIn(b"/static/js/auth_transition.js", register_page.data)
+        self.assertIn(b'href="/register"', login_page.data)
+        self.assertIn(b'href="/login"', register_page.data)
+
+    def test_auth_pages_share_theme_snow_and_brand_layout(self):
+        with self.app.app_context():
+            student = User(email="auth-profile@example.invalid", role="student")
+            student.set_password("test-password")
+            db.session.add(student)
+            db.session.flush()
+            token = create_access_token(
+                identity=str(student.id),
+                additional_claims={"role": "student"},
+            )
+            db.session.commit()
+
+        self.client.set_cookie("access_token_cookie", token)
+        pages = (
+            self.client.get("/login"),
+            self.client.get("/register"),
+            self.client.get("/student/complete-profile"),
+        )
+
+        for page in pages:
+            self.assertEqual(page.status_code, 200)
+            self.assertIn(b'class="auth-login-layout"', page.data)
+            self.assertIn(b'class="auth-box"', page.data)
+            self.assertIn(b'class="auth-brand-banner login-brand-panel"', page.data)
+            self.assertIn(b'class="login-brand-heading"', page.data)
+            self.assertIn(b'class="login-brand-copy"', page.data)
+            self.assertIn(b"Logo Python Grader", page.data)
+            self.assertIn(b'id="loginThemeToggle"', page.data)
+            self.assertIn(b'data-theme-toggle', page.data)
+            self.assertIn(b'id="loginSnow"', page.data)
+            self.assertIn(b"/static/js/login_snow.js", page.data)
+            self.assertIn(b"/static/js/student_theme.js", page.data)
+            self.assertIn(b'data-auth-mascot', page.data)
+
+        register_page = pages[1]
+        self.assertIn(b'id="loginMascot"', register_page.data)
+        self.assertIn(b'id="togglePasswordVisibility"', register_page.data)
+        self.assertIn(b'id="toggleConfirmPasswordVisibility"', register_page.data)
+        self.assertEqual(register_page.data.count(b"data-private-password"), 2)
+        self.assertEqual(register_page.data.count(b"data-password-visibility-toggle"), 2)
+        self.assertIn(b"/static/js/login_mascot.js", register_page.data)
+
     def test_teacher_exam_pages_render_redesigned_forms(self):
         with self.app.app_context():
             teacher = User.query.filter_by(email="teacher-test@example.invalid").first()
@@ -249,15 +406,39 @@ class PublicExamFlowTests(unittest.TestCase):
 
         login_page = self.client.get("/login")
         self.assertIn(b"/static/img/Vimaru.png", login_page.data)
+        self.assertIn(b'class="login-brand-heading"', login_page.data)
+        self.assertIn(b'class="auth-box" aria-labelledby="loginTitle"', login_page.data)
+        self.assertIn(b'id="loginMascot"', login_page.data)
+        self.assertIn(b'id="loginThemeToggle"', login_page.data)
+        self.assertIn(b'id="loginSnow"', login_page.data)
+        self.assertIn(b"/static/js/login_snow.js", login_page.data)
+        self.assertIn(b'id="togglePasswordVisibility"', login_page.data)
+        self.assertIn(b'type="password" id="password"', login_page.data)
+        self.assertIn(b'isPrivateFieldShow', self.client.get("/static/js/login_mascot.js").data)
+        self.assertIn(b"/static/js/login_mascot.js", login_page.data)
+        self.assertIn(b"@rive-app/webgl2@2.40.1", login_page.data)
+        mascot_asset = self.client.get("/static/animation/auth_teddy.riv")
+        self.assertEqual(mascot_asset.status_code, 200)
+        self.assertGreater(len(mascot_asset.data), 0)
         exam_list = self.client.get("/teacher/exams")
         self.assertEqual(exam_list.status_code, 200)
         self.assertIn(b"/static/img/Vimaru.png", exam_list.data)
+        self.assertIn(b"/static/js/student_theme.js", exam_list.data)
+        self.assertIn(b"data-theme-toggle", exam_list.data)
         self.assertIn(b"exam-modal", exam_list.data)
         exam_edit = self.client.get(f"/teacher/exams/{exam_id}/edit")
         self.assertEqual(exam_edit.status_code, 200)
         self.assertIn(b"exam-settings-grid", exam_edit.data)
         self.assertIn(b"examPassword", exam_edit.data)
+        self.assertIn(b"antiCheatEnabled", exam_edit.data)
+        self.assertIn(b'id="antiCheatEnabled" checked', exam_edit.data)
         self.assertNotIn(b"studentExamLink", exam_edit.data)
+        exam_edit_script = self.client.get("/static/js/teacher_exam_edit.js")
+        self.assertIn(
+            b"/api/exams/exercises/${btn.dataset.id}/toggle-publish",
+            exam_edit_script.data,
+        )
+        self.assertNotIn(b"/api/chapters/exercises/", exam_edit_script.data)
 
     def test_exam_schedule_keeps_vietnam_local_time_when_created_and_edited(self):
         with self.app.app_context():
@@ -279,6 +460,7 @@ class PublicExamFlowTests(unittest.TestCase):
             },
         )
         self.assertEqual(created.status_code, 201)
+        self.assertTrue(created.json["exam"]["anti_cheat_enabled"])
         exam_id = created.json["exam"]["id"]
         self.assertEqual(
             created.json["exam"]["start_time"],
@@ -298,9 +480,14 @@ class PublicExamFlowTests(unittest.TestCase):
             json={
                 "start_time": "2026-11-17T02:30",
                 "end_time": "2026-11-20T02:00",
+                "anti_cheat_enabled": False,
             },
         )
         self.assertEqual(updated.status_code, 200)
+        self.assertFalse(updated.json["exam"]["anti_cheat_enabled"])
+        updated_page = self.client.get(f"/teacher/exams/{exam_id}/edit")
+        self.assertIn(b'id="antiCheatEnabled"', updated_page.data)
+        self.assertNotIn(b'id="antiCheatEnabled" checked', updated_page.data)
         self.assertEqual(
             updated.json["exam"]["start_time"],
             "2026-11-17T02:30:00+07:00",
@@ -462,6 +649,18 @@ class PublicExamFlowTests(unittest.TestCase):
         self.assertTrue(
             workspace.json["exam"]["exercises"][0]["id"].startswith("exam-")
         )
+        run_result = self.client.post(
+            f"/api/student/exam-sessions/{started.json['session_id']}/run",
+            json={
+                "exercise_id": workspace.json["exam"]["exercises"][0]["id"],
+                "code": "name = input()\nprint('Hello ' + name)",
+                "input": "Lan",
+            },
+        )
+        self.assertEqual(run_result.status_code, 200)
+        self.assertEqual(run_result.json["stdout"], "Hello Lan\n")
+        self.assertEqual(run_result.json["stderr"], "")
+        self.assertEqual(workspace.json["submissions"], {})
         submission = self.client.post(
             f"/api/student/exam-sessions/{started.json['session_id']}/submit",
             json={
@@ -599,6 +798,80 @@ class PublicExamFlowTests(unittest.TestCase):
         self.assertEqual(attempt["question_count"], 1)
         self.assertEqual(attempt["submissions"][0]["code"], "print(1)")
 
+    def test_chapter_workspace_runs_code_with_custom_input_without_submitting(self):
+        with self.app.app_context():
+            teacher = User.query.filter_by(email="teacher-test@example.invalid").first()
+            student = User(
+                email="chapter-run-student@example.invalid",
+                role="student",
+                profile_completed=True,
+            )
+            student.set_password("test-password")
+            db.session.add(student)
+            db.session.flush()
+            chapter = Chapter(name="Chương chạy thử", teacher_id=teacher.id)
+            db.session.add(chapter)
+            db.session.flush()
+            exercise = Exercise(
+                chapter_id=chapter.id,
+                title="Chào sinh viên",
+                description="Đọc tên và in lời chào.",
+                is_published=True,
+            )
+            db.session.add(exercise)
+            db.session.flush()
+            session = ChapterSession(user_id=student.id, chapter_id=chapter.id)
+            db.session.add(session)
+            db.session.flush()
+            session_id, exercise_id = session.id, exercise.id
+            token = create_access_token(
+                identity=str(student.id),
+                additional_claims={"role": "student"},
+            )
+            db.session.commit()
+        self.client.set_cookie("access_token_cookie", token)
+
+        result = self.client.post(
+            f"/api/student/sessions/{session_id}/run",
+            json={
+                "exercise_id": exercise_id,
+                "code": "name = input('Name: ')\nage = input('Age: ')\nprint(name, age)",
+            },
+        )
+        self.assertEqual(result.status_code, 200)
+        self.assertTrue(result.json["needs_input"])
+        self.assertEqual(result.json["stdout"], "Name: ")
+
+        result = self.client.post(
+            f"/api/student/sessions/{session_id}/run",
+            json={
+                "exercise_id": exercise_id,
+                "code": "name = input('Name: ')\nage = input('Age: ')\nprint(name, age)",
+                "input": "Hoa\n",
+            },
+        )
+        self.assertEqual(result.status_code, 200)
+        self.assertTrue(result.json["needs_input"])
+        self.assertEqual(result.json["stdout"], "Name: Age: ")
+
+        result = self.client.post(
+            f"/api/student/sessions/{session_id}/run",
+            json={
+                "exercise_id": exercise_id,
+                "code": "name = input('Name: ')\nage = input('Age: ')\nprint(name, age)",
+                "input": "Hoa\n20\n",
+            },
+        )
+        self.assertEqual(result.status_code, 200)
+        self.assertFalse(result.json["needs_input"])
+        self.assertEqual(result.json["stdout"], "Name: Age: Hoa 20\n")
+
+        with self.app.app_context():
+            self.assertEqual(
+                ChapterSubmission.query.filter_by(session_id=session_id).count(),
+                0,
+            )
+
     def test_chapter_always_shows_all_published_exercises(self):
         with self.app.app_context():
             teacher = User.query.filter_by(email="teacher-test@example.invalid").first()
@@ -707,7 +980,10 @@ class PublicExamFlowTests(unittest.TestCase):
                     for column in inspect(engine).get_columns("exam_sessions")
                 }
                 row = db.session.execute(
-                    text("SELECT max_attempts, password_hash, access_code FROM exams WHERE id = 10")
+                    text(
+                        "SELECT max_attempts, password_hash, access_code, "
+                        "anti_cheat_enabled FROM exams WHERE id = 10"
+                    )
                 ).one()
                 db.session.remove()
                 engine.dispose()
@@ -716,6 +992,7 @@ class PublicExamFlowTests(unittest.TestCase):
             self.assertEqual(row.max_attempts, 1)
             self.assertIsNone(row.password_hash)
             self.assertTrue(row.access_code)
+            self.assertTrue(row.anti_cheat_enabled)
 
 
 if __name__ == "__main__":

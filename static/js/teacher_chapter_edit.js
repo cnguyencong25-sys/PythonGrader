@@ -73,3 +73,38 @@ document.querySelectorAll(".btn-delete-small").forEach((btn) => {
     }
   });
 });
+
+// ============================================================
+// ẨN / XUẤT BẢN BÀI TẬP
+// ============================================================
+document.querySelectorAll(".btn-toggle-small").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    try {
+      const { ok, data } = await fetchJSON(
+        `/api/chapters/exercises/${btn.dataset.id}/toggle-publish`,
+        { method: "POST" }
+      );
+
+      if (!ok || !data.success) {
+        showMsg(messageEl, data.message || "Không thể thay đổi trạng thái bài tập.");
+        return;
+      }
+
+      const isPublished = Boolean(data.is_published);
+      btn.dataset.publish = isPublished ? "1" : "0";
+      btn.textContent = isPublished ? "Ẩn bài" : "Xuất bản";
+      btn.classList.toggle("btn-warning", isPublished);
+      btn.classList.toggle("btn-success", !isPublished);
+      showMsg(
+        messageEl,
+        isPublished ? "Đã xuất bản bài tập cho sinh viên." : "Đã ẩn bài tập khỏi sinh viên.",
+        "success"
+      );
+    } catch (error) {
+      showMsg(messageEl, "Lỗi kết nối máy chủ.");
+    } finally {
+      btn.disabled = false;
+    }
+  });
+});

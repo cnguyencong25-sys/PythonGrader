@@ -39,23 +39,23 @@ async function loadExams() {
 
     const exams = data.exams || [];
     if (exams.length === 0) {
-      examList.innerHTML = '<p class="empty-state">📭 Chưa có bài kiểm tra nào.</p>';
+      examList.innerHTML = '<p class="empty-state">Chưa có bài kiểm tra nào.</p>';
       return;
     }
 
     examList.innerHTML = exams.map(c => `
       <div class="chapter-card" data-id="${c.id}">
-        <span class="chapter-mode-badge mode-badge-review">📝 Bài kiểm tra</span>
+        <span class="chapter-mode-badge mode-badge-review">Bài kiểm tra</span>
         <h3>${escapeHtml(c.name)}</h3>
-        <p class="chapter-meta">⏱ Thời gian làm: <strong>${c.duration_minutes} phút</strong></p>
-        <p class="chapter-meta">▶ Bắt đầu: ${formatDateTime(c.start_time)}</p>
-        <p class="chapter-meta">⏹ Kết thúc: ${formatDateTime(c.end_time)}</p>
-        <p class="chapter-meta">📚 ${c.exercise_count} bài tập</p>
-        <p class="chapter-meta">🔁 Tối đa ${c.max_attempts} lượt</p>
-        <p class="chapter-meta">🔗 Link thi: <a href="/exam/${escapeHtml(c.access_code)}" target="_blank" rel="noopener">Mở link sinh viên</a></p>
+        <p class="chapter-meta">Thời gian làm: <strong>${c.duration_minutes} phút</strong></p>
+        <p class="chapter-meta">Bắt đầu: ${formatDateTime(c.start_time)}</p>
+        <p class="chapter-meta">Kết thúc: ${formatDateTime(c.end_time)}</p>
+        <p class="chapter-meta">${c.exercise_count} bài tập</p>
+        <p class="chapter-meta">Tối đa ${c.max_attempts} lượt</p>
+        <p class="chapter-meta">Link thi: <a href="/exam/${escapeHtml(c.access_code)}" target="_blank" rel="noopener">Mở link sinh viên</a></p>
         <div class="chapter-actions">
-          <button class="btn-edit-small edit-btn" data-id="${c.id}">⚙️ Cấu hình</button>
-          <button class="btn-delete-small delete-btn" data-id="${c.id}">🗑 Xoá</button>
+          <button class="btn-edit-small edit-btn" data-id="${c.id}">Cấu hình</button>
+          <button class="btn-delete-small delete-btn" data-id="${c.id}">Xoá</button>
         </div>
         <div class="chapter-hover-preview">
           <h4>Bài tập trong bài kiểm tra</h4>

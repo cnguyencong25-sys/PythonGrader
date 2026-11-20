@@ -5,43 +5,53 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hoàn tất hồ sơ — Python Grader</title>
   <link rel="icon" type="image/png" href="/static/img/Vimaru.png">
+  <script src="/static/js/student_theme.js"></script>
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body class="auth-page">
+  {% include "_auth_theme_controls.html" %}
   <div class="auth-wrapper">
-    <div class="auth-box">
-      <div class="brand-mark"><img src="/static/img/Vimaru.png" alt="Logo Python Grader"></div>
-      <h1 class="brand">Python Grader</h1>
-      <p class="auth-tagline">Hoàn thiện hồ sơ để bắt đầu học tập</p>
-      <h2>Hoàn tất hồ sơ sinh viên</h2>
-      <p class="hint">
-        Đây là lần đăng nhập đầu tiên. Vui lòng điền thông tin để tiếp tục.
-      </p>
+    <main class="auth-login-layout">
+      {% include "_auth_brand_banner.html" %}
+      <section class="auth-box" aria-labelledby="profileTitle">
+        <div class="login-mascot-stage">
+          <canvas data-auth-mascot width="520" height="280"
+                  role="img" aria-label="Mascot Python Grader"></canvas>
+        </div>
+        <h2 id="profileTitle">Hoàn tất hồ sơ sinh viên</h2>
+        <p class="hint">
+          Đây là lần đăng nhập đầu tiên. Vui lòng điền thông tin để tiếp tục.
+        </p>
 
-      <form id="profileForm">
-        <label for="full_name">Họ và tên</label>
-        <input type="text" id="full_name" placeholder="Nguyễn Văn A"
-               required minlength="2" maxlength="100" autofocus>
+        <form id="profileForm">
+          <label for="full_name">Họ và tên</label>
+          <input type="text" id="full_name" placeholder="Nguyễn Văn A"
+                 required minlength="2" maxlength="100" autofocus>
 
-        <label for="class_name">Lớp</label>
-        <input type="text" id="class_name" placeholder="CNTT-K65A"
-               required maxlength="50">
+          <label for="class_name">Lớp</label>
+          <input type="text" id="class_name" placeholder="CNTT-K65A"
+                 required maxlength="50">
 
-        <label for="student_id">Mã sinh viên (MSV)</label>
-        <input type="text" id="student_id" placeholder="20231234"
-               required maxlength="50" pattern="[A-Za-z0-9_\-]+"
-               title="Chỉ chữ, số, gạch ngang, gạch dưới">
+          <label for="student_id">Mã sinh viên (MSV)</label>
+          <input type="text" id="student_id" placeholder="20231234"
+                 required maxlength="50" pattern="[A-Za-z0-9_\-]+"
+                 title="Chỉ chữ, số, gạch ngang, gạch dưới">
 
-        <button type="submit">Hoàn tất và vào Dashboard</button>
-      </form>
-      <p id="message" class="message"></p>
+          <button type="submit">Hoàn tất và vào Dashboard</button>
+        </form>
+        <p id="message" class="message"></p>
 
-      <p class="switch-link">
-        <a href="#" id="logoutLink">Đăng xuất</a>
-      </p>
-    </div>
+        <p class="switch-link">
+          <a href="#" id="logoutLink">Đăng xuất</a>
+        </p>
+      </section>
+    </main>
   </div>
+  <script src="https://unpkg.com/@rive-app/webgl2@2.40.1"></script>
+  <script src="/static/js/auth_mascot.js"></script>
   <script src="/static/js/auth.js"></script>
+  <script src="/static/js/auth_session_guard.js"></script>
   <script src="/static/js/idle_timeout.js"></script>
+  <script src="/static/js/login_snow.js"></script>
 </body>
 </html>

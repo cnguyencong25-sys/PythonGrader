@@ -11,18 +11,17 @@ function getStudentTheme() {
 
 function setStudentTheme(theme, savePreference = false) {
   document.documentElement.dataset.studentTheme = theme;
-  const toggle = document.getElementById("studentThemeToggle");
-  if (toggle) {
+  document.querySelectorAll("[data-theme-toggle]").forEach(toggle => {
     const isDark = theme === "dark";
     toggle.setAttribute("aria-pressed", String(isDark));
     toggle.setAttribute(
       "aria-label",
       isDark ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối"
     );
-    toggle.querySelector(".student-theme-icon").textContent = isDark ? "☀" : "☾";
+    toggle.querySelector(".student-theme-icon").textContent = "";
     toggle.querySelector(".student-theme-label").textContent =
       isDark ? "Chế độ sáng" : "Chế độ tối";
-  }
+  });
 
   if (!savePreference) return;
   try {
@@ -35,12 +34,11 @@ function setStudentTheme(theme, savePreference = false) {
 setStudentTheme(getStudentTheme());
 document.addEventListener("DOMContentLoaded", () => {
   setStudentTheme(document.documentElement.dataset.studentTheme || "light");
-  const toggle = document.getElementById("studentThemeToggle");
-  if (!toggle) return;
-
-  toggle.addEventListener("click", () => {
-    const nextTheme =
-      document.documentElement.dataset.studentTheme === "dark" ? "light" : "dark";
-    setStudentTheme(nextTheme, true);
+  document.querySelectorAll("[data-theme-toggle]").forEach(toggle => {
+    toggle.addEventListener("click", () => {
+      const nextTheme =
+        document.documentElement.dataset.studentTheme === "dark" ? "light" : "dark";
+      setStudentTheme(nextTheme, true);
+    });
   });
 });

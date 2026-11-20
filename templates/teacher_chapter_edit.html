@@ -4,8 +4,8 @@
 {% block content %}
 <div class="page-header">
   <div>
-    <a href="/teacher/chapters" class="btn-back-inline">← Quay lại</a>
-    <h1>⚙️ Cấu hình chương</h1>
+    <a href="/teacher/chapters" class="btn-back-inline">Quay lại</a>
+    <h1>Cấu hình chương</h1>
     <p class="subtitle">Chỉnh sửa thông tin chương và danh sách bài tập</p>
   </div>
 </div>
@@ -25,7 +25,7 @@
     </p>
 
     <div class="form-actions">
-      <button type="submit" class="btn-primary">💾 Lưu thay đổi</button>
+      <button type="submit" class="btn-primary">Lưu thay đổi</button>
     </div>
   </form>
 </section>
@@ -35,7 +35,7 @@
   <div class="section-title-row">
     <h2>Danh sách bài tập (<span id="exerciseCountBadge">{{ chapter.exercises|length }}</span>)</h2>
     <a href="/teacher/chapters/{{ chapter.id }}/exercises/new" class="btn-primary">
-      ➕ Thêm bài tập
+       Thêm bài tập
     </a>
   </div>
 
@@ -46,16 +46,16 @@
           <div class="exercise-item-main">
             <div class="exercise-item-title">{{ ex.title }}</div>
             <div class="exercise-item-meta">
-              🧪 {{ ex.test_cases|length }} test case
+               {{ ex.test_cases|length }} test case
             </div>
           </div>
                     <div class="exercise-item-actions">
             <button class="btn-toggle-small {% if ex.is_published %}btn-warning{% else %}btn-success{% endif %}" 
                     data-id="{{ ex.id }}" data-publish="{{ '1' if ex.is_published else '0' }}">
-              {% if ex.is_published %}👁️ Ẩn bài{% else %}👁️‍🗨️ Xuất bản{% endif %}
+              {% if ex.is_published %} Ẩn bài{% else %} Xuất bản{% endif %}
             </button>
-            <a href="/teacher/chapters/exercises/{{ ex.id }}/edit" class="btn-edit-small">✏️ Sửa</a>
-            <button class="btn-delete-small" data-id="{{ ex.id }}">🗑 Xoá</button>
+            <a href="/teacher/chapters/exercises/{{ ex.id }}/edit" class="btn-edit-small"> Sửa</a>
+            <button class="btn-delete-small" data-id="{{ ex.id }}">Xoá</button>
           </div>
         </div>
       {% endfor %}

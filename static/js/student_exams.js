@@ -26,7 +26,7 @@ async function loadExams() {
 
     const exams = data.exams || [];
     if (exams.length === 0) {
-      examList.innerHTML = '<p class="empty-state">📭 Chưa có bài kiểm tra nào.</p>';
+      examList.innerHTML = '<p class="empty-state">Chưa có bài kiểm tra nào.</p>';
       return;
     }
 
@@ -40,27 +40,27 @@ async function loadExams() {
 
       if (e.is_completed) {
         // TRẠNG THÁI ĐÃ LÀM BÀI
-        statusHtml = `<span class="exam-status exam-status-completed">✅ Đã làm bài</span>`;
-        btnHtml = `<button onclick="viewResult(${e.id})" class="btn-secondary exam-card-action exam-card-result">📊 Xem kết quả</button>`;
+        statusHtml = `<span class="exam-status exam-status-completed">Đã làm bài</span>`;
+        btnHtml = `<button onclick="viewResult(${e.id})" class="btn-secondary exam-card-action exam-card-result">Xem kết quả</button>`;
       } else if (start && now < start) {
-        statusHtml = `<span class="exam-status exam-status-pending">⏳ Chưa mở</span>`;
+        statusHtml = `<span class="exam-status exam-status-pending">Chưa mở</span>`;
         btnHtml = `<button class="btn-secondary exam-card-action" disabled>Chưa đến giờ</button>`;
       } else if (end && now > end) {
-        statusHtml = `<span class="exam-status exam-status-closed">🔒 Đã đóng</span>`;
+        statusHtml = `<span class="exam-status exam-status-closed">Đã đóng</span>`;
         btnHtml = `<button class="btn-secondary exam-card-action" disabled>Đã hết hạn</button>`;
       } else {
-        statusHtml = `<span class="exam-status exam-status-open">🟢 Đang mở</span>`;
+        statusHtml = `<span class="exam-status exam-status-open">Đang mở</span>`;
         btnHtml = `<button data-exam-id="${e.id}" data-password-required="${e.password_configured ? "true" : "false"}" class="btn-primary exam-card-action exam-enter-button">Vào thi</button>`;
       }
 
       return `
         <div class="chapter-card">
-          <span class="chapter-mode-badge mode-badge-review">📝 Bài thi</span>
+          <span class="chapter-mode-badge mode-badge-review">Bài thi</span>
           <h3>${e.name}</h3>
-          <p class="chapter-meta">⏱ Thời gian: <strong>${e.duration_minutes} phút</strong></p>
-          <p class="chapter-meta">▶ Bắt đầu: ${start ? formatVietnamDateTime(start) : "Bất kỳ"}</p>
-          <p class="chapter-meta">⏹ Kết thúc: ${end ? formatVietnamDateTime(end) : "Không giới hạn"}</p>
-          <p class="chapter-meta">📚 ${e.exercise_count} bài tập</p>
+          <p class="chapter-meta">Thời gian: <strong>${e.duration_minutes} phút</strong></p>
+          <p class="chapter-meta">Bắt đầu: ${start ? formatVietnamDateTime(start) : "Bất kỳ"}</p>
+          <p class="chapter-meta">Kết thúc: ${end ? formatVietnamDateTime(end) : "Không giới hạn"}</p>
+          <p class="chapter-meta">${e.exercise_count} bài tập</p>
           <p class="chapter-meta exam-card-status">Trạng thái: ${statusHtml}</p>
           ${btnHtml}
         </div>
@@ -122,11 +122,24 @@ async function startExam(examId, password = "", button = null, passwordRequired 
   try {
     const { ok, data } = await fetchJSON(`/api/student/exams/${examId}/start`, {
       method: "POST",
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ password, device_id: window.getExamDeviceId() }),
     });
     if (ok && data.success) {
-      closePasswordModal();
-      window.location.href = `/student/exam-workspace?session_id=${data.session_id}`;
+      window.rememberActiveExamSession(examId, data.session_id);
+    const workspaceUrl = new URL("/student/exam-workspace", window.location.origin);
+    workspaceUrl.searchParams.set("session_id", String(data.session_id));
+    if (data.device_changed) {
+      workspaceUrl.searchParams.set("device_changed", "1");
+    } else if (!data.is_resumed) {
+      workspaceUrl.searchParams.set("fresh_exam", "1");
+    }
+    closePasswordModal();
+    window.location.href = workspaceUrl;
+      return;
+    }
+    if (data.blocked) {
+      if (passwordRequired) closePasswordModal();
+      await window.showAppAlert("Bài thi đã bị giáo viên đình chỉ. Điểm bài thi được chốt 0.");
       return;
     }
     if (passwordRequired) {
@@ -154,7 +167,7 @@ async function startExam(examId, password = "", button = null, passwordRequired 
 async function viewResult(examId) {
   const { ok, data } = await fetchJSON(`/api/student/exams/${examId}/history`);
   if (!ok || !data.success) {
-    alert(data.message || "Không tải được kết quả.");
+    await window.showAppAlert(data.message || "Không tải được kết quả.");
     return;
   }
 
@@ -179,7 +192,7 @@ async function viewResult(examId) {
   modal.className = "modal-overlay";
   modal.innerHTML = `
     <div class="modal-box exam-result-modal">
-      <h3>📊 Kết quả bài thi</h3>
+      <h3>Kết quả bài thi</h3>
       ${html}
       <div class="modal-actions exam-result-actions">
         <button type="button" class="btn-primary" onclick="this.closest('.modal-overlay').remove()">Đóng</button>

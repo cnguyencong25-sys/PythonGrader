@@ -1,0 +1,54 @@
+{% extends "teacher_base.html" %}
+{% block title %}Tài khoản — Python Grader{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Tài Khoản</h1>
+    <p class="subtitle">Quản lý đăng ký tài khoản và trạng thái bảo trì hệ thống.</p>
+  </div>
+</div>
+
+<p id="accountSettingsMessage" class="message" role="status" aria-live="polite"></p>
+
+<div class="account-settings-grid">
+  <section class="card-section account-setting-card" data-setting="registration_blocked">
+    <div class="account-setting-heading">
+      <span id="registrationState" class="account-setting-state" aria-live="polite">
+        Đang tải...
+      </span>
+    </div>
+    <h2>Chặn tạo tài khoản</h2>
+    <p>
+      Khi bật, sinh viên không thể đăng ký tài khoản mới nhưng vẫn đăng nhập được
+      bằng tài khoản hiện có.
+    </p>
+    <button class="btn-primary account-setting-toggle"
+            type="button" data-setting-toggle="registration_blocked" disabled>
+      Đang tải...
+    </button>
+  </section>
+
+  <section class="card-section account-setting-card" data-setting="student_login_maintenance">
+    <div class="account-setting-heading">
+      <span id="maintenanceState" class="account-setting-state" aria-live="polite">
+        Đang tải...
+      </span>
+    </div>
+    <h2>Bảo trì</h2>
+    <p>
+      Khi bật, sinh viên không thể đăng nhập và sẽ nhận thông báo bảo trì.
+      Đăng ký mới cũng tạm thời bị chặn. Giáo viên vẫn đăng nhập được; phiên
+      sinh viên đang hoạt động không bị ngắt.
+    </p>
+    <button class="btn-primary account-setting-toggle"
+            type="button" data-setting-toggle="student_login_maintenance" disabled>
+      Đang tải...
+    </button>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/teacher_accounts.js"></script>
+{% endblock %}

@@ -81,11 +81,15 @@ infoForm.addEventListener("submit", async (e) => {
   const max_attempts = document.getElementById("examMaxAttempts").value;
   const exam_password = document.getElementById("examPassword").value;
   const clear_exam_password = document.getElementById("clearExamPassword").checked;
+  const anti_cheat_enabled = document.getElementById("antiCheatEnabled").checked;
 
   try {
     const { ok, data } = await fetchJSON(`/api/exams/${examId}`, {
       method: "PUT",
-      body: JSON.stringify({ name, start_time, end_time, duration_minutes, max_attempts, exam_password, clear_exam_password }),
+      body: JSON.stringify({
+        name, start_time, end_time, duration_minutes, max_attempts,
+        exam_password, clear_exam_password, anti_cheat_enabled,
+      }),
     });
     if (!ok || !data.success) {
       showMsg(messageEl, data.message || "Không lưu được.");
@@ -98,12 +102,6 @@ infoForm.addEventListener("submit", async (e) => {
     showMsg(messageEl, "Lỗi kết nối.");
     btn.disabled = false;
   }
-});
-document.querySelectorAll(".btn-toggle-small").forEach(btn => {
-  btn.addEventListener("click", async () => {
-    const res = await fetchJSON(`/api/chapters/exercises/${btn.dataset.id}/toggle-publish`, { method: "POST" });
-    if (res.ok) location.reload(); // Reload lại trang để cập nhật giao diện
-  });
 });
 loadChapterRules();
 document.querySelectorAll(".btn-toggle-small").forEach(btn => {

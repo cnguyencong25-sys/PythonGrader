@@ -81,6 +81,14 @@ class AnnouncementReadState(db.Model):
     last_read_announcement_id = db.Column(db.Integer, nullable=False, default=0)
 
 
+class SystemSetting(db.Model):
+    __tablename__ = "system_settings"
+
+    key = db.Column(db.String(80), primary_key=True)
+    value = db.Column(db.String(20), nullable=False, default="false")
+    updated_at = db.Column(db.DateTime, nullable=False, default=utc_now_naive)
+
+
 # ============================================================
 # 2. LOG & PHIÊN ĐĂNG NHẬP
 # ============================================================
@@ -130,6 +138,7 @@ class Chapter(db.Model):
     mode = db.Column(db.String(20), nullable=False, default="practice")
     teacher_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=utc_now_naive)
+    is_hidden = db.Column(db.Boolean, nullable=False, default=False)
 
     teacher = db.relationship("User", foreign_keys=[teacher_id])
     exercises = db.relationship("Exercise", backref="chapter", cascade="all, delete-orphan", order_by="Exercise.created_at")
@@ -138,6 +147,7 @@ class Chapter(db.Model):
         data = {
             "id": self.id, "name": self.name, "mode": self.mode, "teacher_id": self.teacher_id,
             "exercise_count": len(self.exercises), "created_at": utc_iso(self.created_at),
+            "is_hidden": self.is_hidden,
         }
         if include_exercises:
             if exercises_brief:
@@ -181,6 +191,21 @@ class Exercise(db.Model):
             "num_test_cases": self.num_test_cases, "is_published": self.is_published,
         }
 
+    def to_student_dict(self):
+        examples = self.sample_examples
+        return {
+            "id": self.id,
+            "chapter_id": self.chapter_id,
+            "title": self.title,
+            "description": self.description,
+            "input_format": self.input_format,
+            "output_format": self.output_format,
+            "constraints": self.constraints,
+            "sample_input": examples[0]["input"] if examples else "",
+            "sample_output": examples[0]["output"] if examples else "",
+            "sample_examples": examples,
+        }
+
 
 # ============================================================
 # 4. BÀI KIỂM TRA
@@ -193,6 +218,9 @@ class Exam(db.Model):
     end_time = db.Column(db.DateTime(timezone=True), nullable=True)
     duration_minutes = db.Column(db.Integer, nullable=False, default=45)
     max_attempts = db.Column(db.Integer, nullable=False, default=1)
+    anti_cheat_enabled = db.Column(
+        db.Boolean, nullable=False, default=True, server_default="TRUE"
+    )
     password_hash = db.Column(db.String(255), nullable=True)
     access_code = db.Column(db.String(32), unique=True, nullable=False, default=lambda: secrets.token_urlsafe(12))
     teacher_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
@@ -208,6 +236,7 @@ class Exam(db.Model):
             "end_time": vietnam_iso(self.end_time),
             "duration_minutes": self.duration_minutes, "teacher_id": self.teacher_id,
             "max_attempts": self.max_attempts,
+            "anti_cheat_enabled": self.anti_cheat_enabled,
             "access_code": self.access_code,
             "exercise_count": len(self.exercises), "created_at": utc_iso(self.created_at),
         }
@@ -328,6 +357,81 @@ class ExamExercise(db.Model):
 # ============================================================
 # 5. LỊCH SỬ & BÀI NỘP CỦA SINH VIÊN
 # ============================================================
+class FreePracticeSession(db.Model):
+    __tablename__ = "free_practice_sessions"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    mode = db.Column(db.String(20), nullable=False)
+    chapter_ids = db.Column(db.Text, nullable=False, default="[]")
+    question_ids = db.Column(db.Text, nullable=False, default="[]")
+    duration_minutes = db.Column(db.Float, nullable=True)
+    started_at = db.Column(db.DateTime, nullable=False, default=vietnam_now_naive)
+    finished_at = db.Column(db.DateTime, nullable=True)
+    is_finalized = db.Column(db.Boolean, nullable=False, default=False)
+
+    user = db.relationship("User", foreign_keys=[user_id])
+    submissions = db.relationship(
+        "FreePracticeSubmission",
+        backref="session",
+        cascade="all, delete-orphan",
+    )
+
+    def to_dict(self):
+        try:
+            question_count = len(json.loads(self.question_ids or "[]"))
+        except (TypeError, ValueError):
+            question_count = 0
+        total_score = _normalized_total_score(self.submissions, question_count)
+        return {
+            "id": self.id,
+            "mode": self.mode,
+            "started_at": vietnam_iso(self.started_at),
+            "finished_at": vietnam_iso(self.finished_at),
+            "is_finalized": self.is_finalized,
+            "total_score": total_score,
+            "total_max": 10.0 if question_count else 0.0,
+        }
+
+
+class FreePracticeSubmission(db.Model):
+    __tablename__ = "free_practice_submissions"
+    __table_args__ = (
+        db.UniqueConstraint("session_id", "exercise_id", name="uq_free_session_exercise"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(
+        db.Integer,
+        db.ForeignKey("free_practice_sessions.id"),
+        nullable=False,
+        index=True,
+    )
+    exercise_id = db.Column(
+        db.Integer,
+        db.ForeignKey("exercises.id"),
+        nullable=False,
+        index=True,
+    )
+    code = db.Column(db.Text, nullable=False, default="")
+    status = db.Column(db.String(20), nullable=False, default="pending")
+    score = db.Column(db.Float, nullable=False, default=0.0)
+    max_score = db.Column(db.Float, nullable=False, default=10.0)
+    updated_at = db.Column(db.DateTime, default=utc_now_naive, onupdate=utc_now_naive)
+
+    exercise = db.relationship("Exercise", foreign_keys=[exercise_id])
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "session_id": self.session_id,
+            "exercise_id": self.exercise_id,
+            "code": self.code,
+            "status": self.status,
+            "score": self.score,
+            "max_score": self.max_score,
+        }
+
+
 class ChapterSession(db.Model):
     __tablename__ = "chapter_sessions"
     id = db.Column(db.Integer, primary_key=True)
@@ -406,6 +510,73 @@ class ExamSession(db.Model):
             "finished_at": vietnam_iso(self.finished_at),
             "is_finalized": self.is_finalized, "total_score": total_score, "total_max": total_max,
         }
+
+
+class ExamMonitoringRecord(db.Model):
+    __tablename__ = "exam_monitoring_records"
+    __table_args__ = (
+        db.UniqueConstraint("exam_id", "user_id", name="uq_exam_monitoring_user"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    exam_id = db.Column(
+        db.Integer, db.ForeignKey("exams.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    current_session_id = db.Column(
+        db.Integer, db.ForeignKey("exam_sessions.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    device_id = db.Column(db.String(64), nullable=True)
+    abnormal_count = db.Column(db.Integer, nullable=False, default=0)
+    is_blocked = db.Column(db.Boolean, nullable=False, default=False)
+    is_cheating = db.Column(db.Boolean, nullable=False, default=False)
+    blocked_at = db.Column(db.DateTime, nullable=True)
+    updated_at = db.Column(db.DateTime, nullable=False, default=vietnam_now_naive, onupdate=vietnam_now_naive)
+
+    exam = db.relationship("Exam", backref=db.backref("monitoring_records", cascade="all, delete-orphan"))
+    user = db.relationship("User", foreign_keys=[user_id])
+    current_session = db.relationship("ExamSession", foreign_keys=[current_session_id])
+    events = db.relationship(
+        "ExamProctoringEvent",
+        back_populates="record",
+        cascade="all, delete-orphan",
+        order_by="ExamProctoringEvent.occurred_at",
+    )
+
+
+class ExamProctoringEvent(db.Model):
+    __tablename__ = "exam_proctoring_events"
+    __table_args__ = (
+        db.Index(
+            "uq_exam_proctoring_event_token",
+            "record_id",
+            "session_id",
+            "event_token",
+            unique=True,
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    record_id = db.Column(
+        db.Integer,
+        db.ForeignKey("exam_monitoring_records.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    session_id = db.Column(
+        db.Integer,
+        db.ForeignKey("exam_sessions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    event_type = db.Column(db.String(32), nullable=False, index=True)
+    detail = db.Column(db.String(255), nullable=False, default="")
+    event_token = db.Column(db.String(32), nullable=True)
+    occurred_at = db.Column(db.DateTime, nullable=False, default=vietnam_now_naive, index=True)
+
+    record = db.relationship("ExamMonitoringRecord", back_populates="events")
 
 
 class ExamRetakePermission(db.Model):

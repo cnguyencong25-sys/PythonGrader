@@ -9,34 +9,44 @@
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="stylesheet" href="/static/css/student.css">
   <link rel="stylesheet" href="/static/css/announcements.css">
+  <link rel="stylesheet" href="/static/css/app_notifications.css">
   {% block head %}{% endblock %}
 </head>
 <body class="student-body-fix">
-<div class="student-layout">
+<div class="student-layout{% if session_id is defined %} has-workspace-taskbar{% endif %}{% if is_official_exam|default(false) %} official-exam-workspace{% endif %}">
 
   <!-- SIDEBAR -->
-  <aside class="teacher-sidebar">
+  <aside class="teacher-sidebar" id="studentTaskbar">
     <div class="sidebar-brand">
       <img class="brand-icon" src="/static/img/Vimaru.png" alt="">
       <span class="brand-name">Python Grader</span>
+      {% if session_id is defined %}
+      <button class="student-taskbar-toggle student-taskbar-collapse" type="button"
+              aria-label="Thu gọn thanh điều hướng" aria-expanded="true"
+              aria-controls="studentTaskbar">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+          <path d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+      {% endif %}
     </div>
 
     <nav class="sidebar-menu">
       <a href="/student/chapters" class="menu-item {% if active_tab == 'chapters' %}active{% endif %}">
-        <span class="menu-icon">📚</span>
+        <svg class="menu-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H12v18H6.5A2.5 2.5 0 0 0 4 23z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H12v18h5.5A2.5 2.5 0 0 1 20 23z"/></svg>
         <span>Luyện tập chương</span>
       </a>
       <a href="/student/exams" class="menu-item {% if active_tab == 'exams' %}active{% endif %}">
-        <span class="menu-icon">📝</span>
+        <svg class="menu-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>
         <span>Bài kiểm tra</span>
       </a>
       <a href="/student/profile" class="menu-item {% if active_tab == 'profile' %}active{% endif %}">
-        <span class="menu-icon">👤</span>
+        <svg class="menu-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-1.5a7 7 0 0 1 14 0V21z"/></svg>
         <span>Thông tin sinh viên</span>
       </a>
       <button id="announcementToggle" class="menu-item announcement-toggle"
               type="button" aria-haspopup="dialog" aria-expanded="false">
-        <span class="menu-icon">🔔</span>
+        <svg class="menu-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
         <span>Thông báo</span>
         <span id="announcementBadge" class="announcement-badge" aria-live="polite" hidden></span>
       </button>
@@ -44,8 +54,9 @@
 
     <div class="student-sidebar-appearance">
       <button id="studentThemeToggle" class="student-theme-toggle" type="button"
+              data-theme-toggle
               aria-label="Chuyển sang giao diện tối" aria-pressed="false">
-        <span class="student-theme-icon" aria-hidden="true">☾</span>
+        <span class="student-theme-icon" aria-hidden="true"></span>
         <span class="student-theme-label">Chế độ tối</span>
       </button>
     </div>
@@ -61,6 +72,15 @@
 
   <!-- MAIN -->
   <main class="teacher-main">
+    {% if session_id is defined %}
+    <button class="student-taskbar-toggle student-taskbar-reopen" type="button"
+            aria-label="Mở lại thanh điều hướng" aria-expanded="false"
+            aria-controls="studentTaskbar" hidden>
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+        <path d="M4 6h16M4 12h16M4 18h16"/>
+      </svg>
+    </button>
+    {% endif %}
     {% block content %}{% endblock %}
   </main>
 
@@ -88,9 +108,13 @@
     window.location.href = "/login";
   });
 </script>
+<script src="/static/js/app_notifications.js"></script>
 <script src="/static/js/announcements.js"></script>
+<script src="/static/js/auth_session_guard.js"></script>
 <script src="/static/js/idle_timeout.js"></script>
 <script src="/static/js/datetime.js"></script>
+<script src="/static/js/student_exam_device.js"></script>
+<script src="/static/js/student_exam_resume.js"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

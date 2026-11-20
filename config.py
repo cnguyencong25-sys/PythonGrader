@@ -18,4 +18,4 @@ class Config:
     JWT_COOKIE_SAMESITE = "Lax"        # Chống CSRF cơ bản
     JWT_ACCESS_COOKIE_PATH = "/"
     JWT_COOKIE_CSRF_PROTECT = False    # Tắt CSRF double-submit cho dev (bật khi production)
-    JWT_ACCESS_TOKEN_EXPIRES = 3600    # 1 giờ (giây)
+    JWT_ACCESS_TOKEN_EXPIRES = 12 * 60 * 60    # 12 giờ

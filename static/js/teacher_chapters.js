@@ -47,7 +47,7 @@ async function loadChapters() {
 
     const chapters = data.chapters || [];
     if (chapters.length === 0) {
-      chapterList.innerHTML = '<p class="empty-state">📭 Chưa có chương nào. Nhấn "Tạo chương mới" để bắt đầu.</p>';
+      chapterList.innerHTML = '<p class="empty-state">Chưa có chương nào. Nhấn "Tạo chương mới" để bắt đầu.</p>';
       return;
     }
 
@@ -60,6 +60,9 @@ async function loadChapters() {
 }
 
 function renderChapterCard(c) {
+  const visibilityBadge = c.is_hidden
+    ? '<span class="chapter-visibility-badge">Đang ẩn với sinh viên</span>'
+    : "";
   const previewHtml = c.exercises && c.exercises.length
     ? `<ul>${c.exercises.map((ex, i) =>
         `<li><span class="preview-index">${i + 1}.</span><span>${escapeHtml(ex.title)}</span></li>`
@@ -67,14 +70,19 @@ function renderChapterCard(c) {
     : `<div class="empty-preview">Chưa có bài tập nào</div>`;
 
   return `
-    <div class="chapter-card" data-id="${c.id}">
-      <span class="chapter-mode-badge mode-badge-practice">📖 Chương luyện tập</span>
+    <div class="chapter-card${c.is_hidden ? " chapter-card-hidden" : ""}" data-id="${c.id}">
+      <span class="chapter-mode-badge mode-badge-practice">Chương luyện tập</span>
+      ${visibilityBadge}
       <h3>${escapeHtml(c.name)}</h3>
-      <p class="chapter-meta">📝 ${c.exercise_count} bài tập</p>
-      <p class="chapter-meta">📅 Tạo ngày ${formatDate(c.created_at)}</p>
+      <p class="chapter-meta"> ${c.exercise_count} bài tập</p>
+      <p class="chapter-meta">Tạo ngày ${formatDate(c.created_at)}</p>
       <div class="chapter-actions">
-        <button class="btn-edit-small edit-btn" data-id="${c.id}">⚙️ Cấu hình</button>
-        <button class="btn-delete-small delete-btn" data-id="${c.id}">🗑 Xoá</button>
+        <button class="btn-edit-small edit-btn" data-id="${c.id}">Cấu hình</button>
+        <button class="btn-visibility-small visibility-btn" data-id="${c.id}"
+                data-hidden="${c.is_hidden ? "true" : "false"}">
+          ${c.is_hidden ? "Hiện lại" : "Ẩn tạm thời"}
+        </button>
+        <button class="btn-delete-small delete-btn" data-id="${c.id}">Xoá</button>
       </div>
       <div class="chapter-hover-preview">
         <h4>Bài tập trong chương</h4>
@@ -89,6 +97,29 @@ function bindChapterActions() {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       window.location.href = `/teacher/chapters/${btn.dataset.id}/edit`;
+    });
+  });
+
+  document.querySelectorAll(".visibility-btn").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      btn.disabled = true;
+      try {
+        const { ok, data } = await fetchJSON(
+          `/api/chapters/${btn.dataset.id}/toggle-visibility`,
+          { method: "POST" }
+        );
+        if (!ok || !data.success) {
+          showMsg(messageEl, data.message || "Không thể thay đổi trạng thái chương.");
+          return;
+        }
+        await loadChapters();
+        showMsg(messageEl, data.message, "success");
+      } catch (error) {
+        showMsg(messageEl, "Lỗi kết nối máy chủ.");
+      } finally {
+        btn.disabled = false;
+      }
     });
   });
 

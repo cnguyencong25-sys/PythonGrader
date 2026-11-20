@@ -2,17 +2,65 @@
 {% block title %}Luyện tập chương — Python Grader{% endblock %}
 
 {% block content %}
-<div class="page-header">
+<div class="page-header free-practice-page-header">
   <div>
-    <h1>📚 Luyện tập theo chương</h1>
+    <h1>Luyện tập theo chương</h1>
     <p class="subtitle">Chọn một chương để bắt đầu làm bài tập</p>
   </div>
+  <button id="openFreePracticeBtn" class="btn-primary" type="button">Luyện tập</button>
 </div>
 
 <div id="message" class="message"></div>
 
 <div id="chapterList" class="chapter-grid">
   <p class="loading">Đang tải...</p>
+</div>
+
+<div id="freePracticeModal" class="modal-overlay hidden" role="dialog"
+     aria-modal="true" aria-labelledby="freePracticeTitle">
+  <div class="modal-box free-practice-modal-box">
+    <h3 id="freePracticeTitle">Luyện tập & Ôn thi tự do</h3>
+    <div class="free-practice-mode-options" role="radiogroup" aria-label="Chế độ">
+      <label class="free-practice-mode-card" for="practiceMode">
+        <input id="practiceMode" type="radio" name="freePracticeMode" value="practice" checked>
+        <span><strong>Chế độ Luyện tập</strong><small>Chọn một chương, không giới hạn thời gian.</small></span>
+      </label>
+      <label class="free-practice-mode-card" for="simulationMode">
+        <input id="simulationMode" type="radio" name="freePracticeMode" value="simulation">
+        <span><strong>Chế độ Ôn thi</strong><small>Chọn nhiều chương, có đồng hồ đếm ngược.</small></span>
+      </label>
+    </div>
+
+    <div id="practiceConfig" class="free-practice-config">
+      <label for="practiceChapterSelect">Chọn chương</label>
+      <select id="practiceChapterSelect">
+        <option value="">Đang tải chương...</option>
+      </select>
+      <label for="practiceQuestionCount">Số câu hỏi</label>
+      <input id="practiceQuestionCount" type="number" min="1" step="1" value="1">
+    </div>
+
+    <div id="simulationConfig" class="free-practice-config" hidden>
+      <span class="free-practice-field-label">Chọn chương</span>
+      <div id="simulationChapterList" class="free-practice-chapter-list">
+        <label class="free-practice-check-all">
+          <input id="selectAllChapters" type="checkbox">
+          <span>Chọn tất cả các chương</span>
+        </label>
+        <div id="simulationChapterOptions"></div>
+      </div>
+      <label for="simulationQuestionCount">Tổng số câu hỏi</label>
+      <input id="simulationQuestionCount" type="number" min="1" step="1" value="5">
+      <label for="simulationDuration">Thời gian làm bài (phút)</label>
+      <input id="simulationDuration" type="number" min="0" step="any" value="45">
+    </div>
+
+    <p id="freePracticeValidation" class="free-practice-validation" role="status"></p>
+    <div class="modal-actions">
+      <button id="cancelFreePracticeBtn" class="btn-secondary" type="button">Huỷ</button>
+      <button id="confirmFreePracticeBtn" class="btn-primary" type="button" disabled>Xác nhận</button>
+    </div>
+  </div>
 </div>
 {% endblock %}
 

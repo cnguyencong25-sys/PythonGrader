@@ -5,33 +5,56 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Đăng ký — Python Grader</title>
   <link rel="icon" type="image/png" href="/static/img/Vimaru.png">
+  <script src="/static/js/student_theme.js"></script>
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body class="auth-page">
+  {% include "_auth_theme_controls.html" %}
   <div class="auth-wrapper">
-    <div class="auth-box">
-      <div class="brand-mark"><img src="/static/img/Vimaru.png" alt="Logo Python Grader"></div>
-      <h1 class="brand">Python Grader</h1>
-      <p class="auth-tagline">Tạo tài khoản sinh viên của bạn</p>
-      <h2>Đăng ký tài khoản sinh viên</h2>
-      <form id="registerForm">
-        <label for="email">Email</label>
-        <input type="email" id="email" placeholder="sv@example.com" required>
+    <main class="auth-login-layout">
+      {% include "_auth_brand_banner.html" %}
+      <section class="auth-box" aria-labelledby="registerTitle">
+        <div class="login-mascot-stage">
+          <canvas id="loginMascot" width="520" height="280"
+                  role="img" aria-label="Mascot hoạt hình tương tác"></canvas>
+        </div>
+        <h2 id="registerTitle">Đăng ký tài khoản sinh viên</h2>
+        <form id="registerForm">
+          <label for="email">Email</label>
+          <input type="email" id="email" placeholder="sv@example.com" required>
 
-        <label for="password">Mật khẩu (≥ 8 ký tự)</label>
-        <input type="password" id="password" placeholder="••••••••" required minlength="8">
+          <label for="password">Mật khẩu (≥ 8 ký tự)</label>
+          <div class="auth-password-field">
+            <input type="password" id="password" placeholder="••••••••"
+                   required minlength="8" data-private-password>
+            {% with toggle_id="togglePasswordVisibility", password_id="password" %}
+              {% include "_password_visibility_toggle.html" %}
+            {% endwith %}
+          </div>
 
-        <label for="confirm_password">Xác nhận mật khẩu</label>
-        <input type="password" id="confirm_password" placeholder="••••••••" required minlength="8">
+          <label for="confirm_password">Xác nhận mật khẩu</label>
+          <div class="auth-password-field">
+            <input type="password" id="confirm_password" placeholder="••••••••"
+                   required minlength="8" data-private-password>
+            {% with toggle_id="toggleConfirmPasswordVisibility", password_id="confirm_password" %}
+              {% include "_password_visibility_toggle.html" %}
+            {% endwith %}
+          </div>
 
-        <button type="submit">Đăng ký</button>
-      </form>
-      <p id="message" class="message"></p>
-      <p class="switch-link">
-        Đã có tài khoản? <a href="/login">Đăng nhập</a>
-      </p>
-    </div>
+          <button type="submit">Đăng ký</button>
+        </form>
+        <p id="message" class="message"></p>
+        <p class="switch-link">
+          Đã có tài khoản? <a href="/login">Đăng nhập</a>
+        </p>
+      </section>
+    </main>
   </div>
+  <script src="https://unpkg.com/@rive-app/webgl2@2.40.1"></script>
+  <script src="/static/js/login_mascot.js"></script>
   <script src="/static/js/auth.js"></script>
+  <script src="/static/js/auth_transition.js"></script>
+  <script src="/static/js/login_snow.js"></script>
+  <script src="/static/js/auth_mascot.js"></script>
 </body>
 </html>

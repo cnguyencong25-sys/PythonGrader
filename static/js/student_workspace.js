@@ -15,6 +15,10 @@ let currentExIndex = -1;
 let editor = null;
 let submissionsData = {};
 let autoSaveTimeout = null;
+let runInputs = [];
+let previousRunOutput = "";
+let runTranscript = "";
+let runGeneration = 0;
 
 // Khởi tạo CodeMirror
 function initEditor() {
@@ -53,7 +57,7 @@ async function autoSaveDraft() {
 async function loadWorkspace() {
   const { ok, data } = await fetchJSON(`/api/student/sessions/${sessionId}`);
   if (!ok || !data.success) {
-    alert(data.message || "Lỗi tải dữ liệu.");
+    await window.showAppAlert(data.message || "Lỗi tải dữ liệu.");
     return;
   }
 
@@ -88,6 +92,7 @@ function renderExerciseGrid() {
 function selectExercise(index) {
   currentExIndex = index;
   const ex = exercises[index];
+  document.getElementById("nextQuestionBtn").disabled = index >= exercises.length - 1;
 
   document.querySelectorAll(".ex-btn").forEach(btn => btn.classList.remove("active"));
   document.querySelector(`.ex-btn[data-index="${index}"]`).classList.add("active");
@@ -98,6 +103,7 @@ function selectExercise(index) {
   document.getElementById("problemOutputFormat").textContent = ex.output_format || "(Không có)";
   document.getElementById("problemConstraints").textContent = ex.constraints || "(Không có)";
   renderStudentSampleCases(ex);
+  resetRunPanel();
 
   // Load code cũ (từ lúc lưu nháp hoặc nộp bài)
   if (submissionsData[ex.id] && submissionsData[ex.id].code) {
@@ -108,21 +114,160 @@ function selectExercise(index) {
       document.getElementById("submitResult").textContent = "";
     }
   } else {
-    editor.setValue("def solve():\n    # Viết code của bạn ở đây\n    pass\n");
+    editor.setValue("");
     document.getElementById("submitResult").textContent = "";
   }
 }
 
+function resetRunPanel() {
+  runGeneration += 1;
+  runInputs = [];
+  previousRunOutput = "";
+  runTranscript = "";
+  document.getElementById("runInputForm").hidden = true;
+  document.getElementById("runOutput").hidden = false;
+  document.getElementById("runInputTranscript").textContent = "";
+  document.getElementById("runInput").value = "";
+  document.getElementById("runCodeBtn").disabled = false;
+  document.getElementById("runCodeBtn").textContent = "Chạy thử";
+  document.getElementById("runOutput").textContent = "";
+  document.getElementById("runStatus").textContent = "";
+}
+
+async function executeCurrentCode() {
+  if (currentExIndex === -1) return;
+  const generation = runGeneration;
+  const ex = exercises[currentExIndex];
+  const button = document.getElementById("runCodeBtn");
+  const output = document.getElementById("runOutput");
+  const status = document.getElementById("runStatus");
+  const inputForm = document.getElementById("runInputForm");
+  const inputField = document.getElementById("runInput");
+  button.disabled = true;
+  button.textContent = "Đang chạy...";
+
+  try {
+    const { ok, data } = await fetchJSON(`/api/student/sessions/${sessionId}/run`, {
+      method: "POST",
+      body: JSON.stringify({
+        exercise_id: ex.id,
+        code: editor.getValue(),
+        input: runInputs.length ? `${runInputs.join("\n")}\n` : "",
+      }),
+    });
+    if (generation !== runGeneration) return;
+    if (!ok || !data.success) {
+      runTranscript = [runTranscript, data.message || "Không chạy được code."]
+        .filter(Boolean).join("\n");
+      output.textContent = runTranscript;
+      inputForm.hidden = true;
+      output.hidden = false;
+      document.getElementById("runInputTranscript").textContent = "";
+      status.textContent = "Lỗi";
+      return;
+    }
+
+    const stdout = data.stdout || "";
+    if (previousRunOutput && stdout.startsWith(previousRunOutput)) {
+      runTranscript += stdout.slice(previousRunOutput.length);
+    } else if (runInputs.length) {
+      runTranscript += stdout;
+    } else {
+      runTranscript = stdout;
+    }
+    output.textContent = runTranscript;
+    if (data.output_truncated) output.textContent += "\n\n(Output đã được rút gọn)";
+    if (data.needs_input) {
+      previousRunOutput = stdout;
+      document.getElementById("runInputTranscript").textContent = runTranscript;
+      inputForm.hidden = false;
+      output.hidden = true;
+      document.getElementById("runPrompt").textContent = "Nhập input, nhấn Enter để gửi";
+      status.textContent = "Chương trình đang chờ input";
+      inputField.focus();
+    } else {
+      previousRunOutput = "";
+      inputForm.hidden = true;
+      output.hidden = false;
+      document.getElementById("runInputTranscript").textContent = "";
+      if (data.stderr) {
+        runTranscript += `${runTranscript ? "\n" : ""}Lỗi chạy chương trình:\n${data.stderr}`;
+        output.textContent = runTranscript;
+      }
+      status.textContent = data.timed_out ? "Quá thời gian" : data.stderr ? "Có lỗi" : "Hoàn tất";
+    }
+  } catch (error) {
+    if (generation !== runGeneration) return;
+    runTranscript = [runTranscript, "Không kết nối được máy chủ. Vui lòng thử lại."]
+      .filter(Boolean).join("\n");
+    output.textContent = runTranscript;
+    inputForm.hidden = true;
+    output.hidden = false;
+    document.getElementById("runInputTranscript").textContent = "";
+    status.textContent = "Lỗi kết nối";
+  } finally {
+    if (generation === runGeneration) {
+      button.disabled = false;
+      button.textContent = "Chạy thử";
+    }
+  }
+}
+
+async function runCurrentCode() {
+  const inputForm = document.getElementById("runInputForm");
+  if (!inputForm.hidden) {
+    inputForm.requestSubmit();
+    return;
+  }
+  runGeneration += 1;
+  runInputs = [];
+  previousRunOutput = "";
+  runTranscript = "";
+  document.getElementById("runInput").value = "";
+  inputForm.hidden = true;
+  document.getElementById("runOutput").hidden = false;
+  document.getElementById("runInputTranscript").textContent = "";
+  document.getElementById("runOutput").textContent = "";
+  document.getElementById("runStatus").textContent = "";
+  await executeCurrentCode();
+}
+
+function clearRunConsole() {
+  runTranscript = "";
+  document.getElementById("runOutput").textContent = "";
+  document.getElementById("runInputTranscript").textContent = "";
+  document.getElementById("runStatus").textContent = "";
+  document.getElementById("runInput").value = "";
+}
+
+document.getElementById("runInputForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  const inputField = document.getElementById("runInput");
+  runInputs.push(inputField.value);
+  runTranscript += `${inputField.value}\n`;
+  inputField.value = "";
+  document.getElementById("runInputForm").hidden = true;
+  document.getElementById("runOutput").hidden = false;
+  await executeCurrentCode();
+});
+
+document.getElementById("runInput").addEventListener("keydown", event => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    document.getElementById("runInputForm").requestSubmit();
+  }
+});
+
 function updateSubmitResultUI(result) {
   const resEl = document.getElementById("submitResult");
   if (result.status === "correct") {
-    resEl.textContent = "✅ Đúng hoàn toàn!";
+    resEl.textContent = "Đúng hoàn toàn";
     resEl.className = "submit-result correct";
   } else if (result.status === "partial") {
-    resEl.textContent = "⚠️ Đúng một phần.";
+    resEl.textContent = "Đúng một phần";
     resEl.className = "submit-result partial";
   } else {
-    resEl.textContent = "❌ Sai.";
+    resEl.textContent = "Sai";
     resEl.className = "submit-result wrong";
   }
 }
@@ -134,7 +279,7 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
   const btn = document.getElementById("submitBtn");
   
   btn.disabled = true;
-  btn.textContent = "⏳ Đang chấm...";
+  btn.textContent = "Đang chấm...";
 
   try {
     const { ok, data } = await fetchJSON(`/api/student/sessions/${sessionId}/submit`, {
@@ -153,12 +298,31 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
       updateSubmitResultUI(result);
     }
   } catch (err) {
-    alert("Lỗi kết nối.");
+    await window.showAppAlert("Lỗi kết nối.");
   } finally {
     btn.disabled = false;
-    btn.textContent = "🚀 Nộp bài";
+    btn.textContent = "Nộp bài";
   }
 });
+
+document.getElementById("nextQuestionBtn").addEventListener("click", async () => {
+  if (currentExIndex < 0 || currentExIndex >= exercises.length - 1) return;
+
+  const btn = document.getElementById("nextQuestionBtn");
+  const nextIndex = currentExIndex + 1;
+  btn.disabled = true;
+  clearTimeout(autoSaveTimeout);
+  try {
+    await autoSaveDraft();
+    selectExercise(nextIndex);
+  } catch (error) {
+    await window.showAppAlert("Không lưu được bản nháp. Vui lòng thử lại.");
+  } finally {
+    btn.disabled = currentExIndex >= exercises.length - 1;
+  }
+});
+document.getElementById("runCodeBtn").addEventListener("click", runCurrentCode);
+document.getElementById("clearRunOutputBtn").addEventListener("click", clearRunConsole);
 
 // ==========================================
 // XỬ LÝ KẾT THÚC
@@ -179,11 +343,9 @@ document.getElementById("finishBtn").addEventListener("click", async () => {
       wrong: "Sai",
       pending: "Chưa nộp",
     }[status];
-    const icon = { correct: "✅", partial: "⚠️", wrong: "❌", pending: "⏳" }[status];
-    
     return `
       <div class="summary-item status-${status}">
-        <span>${icon} Bài ${i + 1}: ${ex.title}</span>
+        <span>Bài ${i + 1}: ${ex.title}</span>
         <strong>${statusText}</strong>
       </div>
     `;

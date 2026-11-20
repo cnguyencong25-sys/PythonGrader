@@ -12,7 +12,6 @@
 
 {% block content %}
 <div class="workspace-layout" data-chapter-id="{{ chapter.id }}" data-session-id="{{ session_id }}">
-  
   <!-- CỘT TRÁI: DANH SÁCH CÂU HỎI -->
   <div class="ws-sidebar">
     <div class="ws-sidebar-header">
@@ -24,7 +23,7 @@
     </div>
     <!-- Nút Kết thúc làm bài -->
     <div class="ws-sidebar-footer">
-      <button id="finishBtn" class="btn-finish">🏁 Kết thúc làm bài</button>
+      <button id="finishBtn" class="btn-finish">Kết thúc làm bài</button>
     </div>
   </div>
 
@@ -46,15 +45,44 @@
         <div class="sample-cases-display" id="problemSampleCases"></div>
       </div>
       
-      <div class="ws-editor-area">
-        <textarea id="codeEditor"></textarea>
+      <div class="ws-code-workbench">
+        <section class="ws-editor-area" aria-label="Trình soạn thảo mã">
+          <div class="ws-pane-heading"><strong>Code Python</strong></div>
+          <textarea id="codeEditor"></textarea>
+        </section>
+        <section class="ws-run-panel" aria-label="Chạy thử với input tùy chỉnh">
+          <div class="ws-pane-heading">
+            <strong>Output</strong>
+            <div class="ws-console-heading-actions">
+              <span id="runStatus" role="status"></span>
+              <button id="clearRunOutputBtn" class="ws-console-clear" type="button">Xóa</button>
+            </div>
+          </div>
+          <div class="ws-run-console">
+            <pre id="runOutput" class="ws-run-output" aria-live="polite"></pre>
+            <form id="runInputForm" class="ws-run-input-form" hidden>
+              <pre id="runInputTranscript" class="ws-run-input-transcript" aria-live="polite"></pre>
+              <label id="runPrompt" for="runInput">Chương trình đang chờ input</label>
+              <div class="ws-run-input-row">
+                <textarea id="runInput" class="ws-run-input" rows="1" spellcheck="false"
+                          placeholder="Nhập input, Enter để chạy; Shift+Enter xuống dòng..."></textarea>
+              </div>
+            </form>
+          </div>
+          <button id="runCodeBtn" class="btn-secondary ws-run-button" type="button">Chạy thử</button>
+        </section>
       </div>
       
       <div class="ws-toolbar">
         <div id="submitResult" class="submit-result"></div>
-        <button id="submitBtn" class="btn-primary ws-submit-button">
-          🚀 Nộp bài
-        </button>
+        <div class="ws-toolbar-actions">
+          <button id="nextQuestionBtn" class="btn-secondary ws-submit-button" type="button" disabled>
+            Chuyển tiếp
+          </button>
+          <button id="submitBtn" class="btn-primary ws-submit-button" type="button">
+             Nộp bài
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -63,7 +91,7 @@
 <!-- MODAL: TỔNG KẾT KẾT THÚC -->
 <div id="finishModal" class="modal-overlay hidden">
   <div class="modal-box">
-    <h3>🏁 Tổng kết chương</h3>
+    <h3>Tổng kết chương</h3>
     
     <!-- Màn hình 1: Danh sách trạng thái -->
     <div id="summaryStep">
@@ -94,5 +122,6 @@
 {% block scripts %}
 <script src="/static/js/student_code_editor.js"></script>
 <script src="/static/js/student_sample_cases.js"></script>
+<script src="/static/js/student_workspace_sidebar.js"></script>
 <script src="/static/js/student_workspace.js"></script>
 {% endblock %}

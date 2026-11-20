@@ -18,6 +18,15 @@
   font-weight: 500;
 }
 
+.teacher-sidebar .announcement-toggle,
+.student-layout .announcement-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  text-align: left !important;
+}
+
 .announcement-badge {
   position: absolute;
   top: 4px;
@@ -206,14 +215,16 @@
   line-height: 1.6;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  text-align: center;
 }
 
 .announcement-card-meta {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  flex-wrap: wrap;
   gap: 12px;
-  margin-top: 10px;
+  margin-top: 0;
   color: #8992a4;
   font-size: 12px;
 }
@@ -302,4 +313,280 @@ html[data-student-theme="dark"] .announcement-compose textarea {
 html[data-student-theme="dark"] .announcement-card {
   border-color: #303b51;
   background: #131c2b;
+}
+
+.announcement-overlay {
+  background: rgba(9, 9, 11, 0.48);
+  backdrop-filter: blur(2px);
+}
+
+.announcement-dialog {
+  border-color: #e4e4e7;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: none;
+  color: #18181b;
+}
+
+.announcement-header {
+  border-color: #e4e4e7;
+}
+
+.announcement-header h2 {
+  color: #18181b;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.announcement-compose {
+  border-color: #e4e4e7;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.announcement-compose textarea {
+  border-color: #e4e4e7;
+  border-radius: 8px;
+}
+
+.announcement-compose textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
+.announcement-compose-footer button {
+  border: 1px solid #2563eb;
+  border-radius: 8px;
+  background: #2563eb;
+  box-shadow: none;
+}
+
+.announcement-compose-footer button:hover {
+  background: #1d4ed8;
+}
+
+.announcement-card {
+  border-color: #e4e4e7;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.announcement-close {
+  border-radius: 8px;
+}
+
+html[data-student-theme="dark"] .announcement-dialog,
+html[data-student-theme="dark"] .announcement-card {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #18181b;
+  color: #e4e4e7;
+}
+
+html[data-student-theme="dark"] .announcement-header,
+html[data-student-theme="dark"] .announcement-compose {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-student-theme="dark"] .announcement-header h2 {
+  color: #fafafa;
+}
+
+html[data-student-theme="dark"] .announcement-compose {
+  background: #111113;
+}
+
+html[data-student-theme="dark"] .announcement-compose textarea {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: #09090b;
+  color: #e4e4e7;
+}
+
+.announcement-overlay {
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(8px);
+}
+
+.announcement-dialog,
+.announcement-card,
+.announcement-compose {
+  border-color: rgba(30, 58, 138, 0.12);
+  background: #fff;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+}
+
+.announcement-header {
+  border-color: rgba(30, 58, 138, 0.12);
+}
+
+.announcement-header h2,
+.announcement-compose label {
+  color: #0f172a;
+}
+
+.announcement-compose textarea {
+  border-color: rgba(30, 58, 138, 0.16);
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.announcement-compose textarea:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.18), 0 0 18px rgba(56, 189, 248, 0.2);
+}
+
+html[data-student-theme="dark"] .announcement-overlay {
+  background: rgba(3, 6, 14, 0.7);
+  backdrop-filter: blur(10px);
+}
+
+html[data-student-theme="dark"] .announcement-dialog,
+html[data-student-theme="dark"] .announcement-card,
+html[data-student-theme="dark"] .announcement-compose {
+  border-color: rgba(148, 163, 184, 0.14);
+  background: rgba(28, 28, 40, 0.85);
+  color: #e2e8f0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(12px);
+}
+
+html[data-student-theme="dark"] .announcement-header {
+  border-color: rgba(148, 163, 184, 0.14);
+}
+
+html[data-student-theme="dark"] .announcement-header h2,
+html[data-student-theme="dark"] .announcement-compose label,
+html[data-student-theme="dark"] .announcement-card-content {
+  color: #f1f5f9;
+}
+
+html[data-student-theme="dark"] .announcement-compose textarea {
+  border-color: rgba(148, 163, 184, 0.14);
+  background: rgba(14, 17, 26, 0.72);
+  color: #e2e8f0;
+}
+
+.announcement-compose-footer button {
+  background: linear-gradient(110deg, #4f46e5 0%, #0284c7 100%);
+}
+
+html[data-student-theme="dark"] .announcement-compose-footer button {
+  background: linear-gradient(110deg, #8b5cf6 0%, #06b6d4 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .announcement-dialog {
+    animation: none !important;
+  }
+}
+
+.announcement-overlay {
+  background: var(--overlay-bg);
+}
+
+.announcement-dialog,
+.announcement-card,
+.announcement-compose {
+  border-color: var(--card-border);
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+  color: var(--text-primary);
+  backdrop-filter: blur(14px);
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.2s ease;
+}
+
+.announcement-header {
+  border-color: var(--card-border);
+}
+
+.announcement-header h2,
+.announcement-compose label,
+.announcement-card-content {
+  color: var(--text-primary);
+}
+
+.announcement-header p,
+.announcement-card-meta,
+.announcement-empty,
+.announcement-compose-footer span {
+  color: var(--text-secondary);
+}
+
+.announcement-compose textarea {
+  border-color: var(--input-border);
+  background: var(--input-bg);
+  color: var(--input-text);
+}
+
+.announcement-compose textarea:focus {
+  border-color: var(--accent-3);
+  box-shadow: var(--ui-focus-glow);
+}
+
+.announcement-compose-footer button {
+  border-color: transparent;
+  background: var(--accent-cta-gradient);
+  box-shadow: var(--glow);
+}
+
+.announcement-compose-footer button:hover {
+  background: var(--accent-cta-gradient);
+  box-shadow: var(--glow);
+}
+
+.announcement-close {
+  border: 1px solid var(--card-border);
+  background: var(--sidebar-bg);
+  color: var(--text-primary);
+}
+
+.announcement-close:hover {
+  background: var(--sidebar-hover-bg);
+}
+
+.announcement-error {
+  border: 1px solid var(--danger);
+  background: var(--status-danger-bg);
+  color: var(--danger);
+}
+
+html[data-student-theme="dark"] .announcement-dialog,
+html[data-student-theme="dark"] .announcement-card,
+html[data-student-theme="dark"] .announcement-compose {
+  border-color: var(--card-border);
+  background: var(--card-bg);
+  color: var(--text-primary);
+}
+
+html[data-student-theme="dark"] .announcement-header {
+  border-color: var(--card-border);
+}
+
+html[data-student-theme="dark"] .announcement-header h2,
+html[data-student-theme="dark"] .announcement-compose label,
+html[data-student-theme="dark"] .announcement-card-content {
+  color: var(--text-primary);
+}
+
+html[data-student-theme="dark"] .announcement-header p,
+html[data-student-theme="dark"] .announcement-card-meta,
+html[data-student-theme="dark"] .announcement-empty,
+html[data-student-theme="dark"] .announcement-compose-footer span {
+  color: var(--text-secondary);
+}
+
+html[data-student-theme="dark"] .announcement-compose textarea {
+  border-color: var(--input-border);
+  background: var(--input-bg);
+  color: var(--input-text);
+}
+
+html[data-student-theme="dark"] .announcement-compose-footer button {
+  border-color: transparent;
+  background: var(--accent-cta-gradient);
+  box-shadow: var(--glow);
 }

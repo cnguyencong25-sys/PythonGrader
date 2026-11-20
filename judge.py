@@ -3,34 +3,70 @@ import sys
 import os
 import tempfile
 
+
+def _student_process_environment(working_dir: str) -> dict[str, str]:
+    env = {
+        "PYTHONIOENCODING": "utf-8",
+        "PYTHONUTF8": "1",
+    }
+
+    if os.name == "nt":
+        system_root = os.environ.get("SYSTEMROOT") or os.environ.get("WINDIR")
+        if system_root:
+            env["SystemRoot"] = system_root
+            env["COMSPEC"] = os.path.join(system_root, "System32", "cmd.exe")
+            system_paths = [
+                system_root,
+                os.path.join(system_root, "System32"),
+            ]
+        else:
+            system_paths = []
+        env["PATHEXT"] = ".COM;.EXE;.BAT;.CMD"
+        env["TEMP"] = working_dir
+        env["TMP"] = working_dir
+        env["PATH"] = os.pathsep.join(dict.fromkeys([
+            os.path.dirname(sys.executable),
+            sys.prefix,
+            sys.base_prefix,
+            *system_paths,
+        ]))
+    else:
+        env["PATH"] = os.pathsep.join(dict.fromkeys((
+            os.path.dirname(sys.executable),
+            os.defpath,
+        )))
+        env["TMPDIR"] = working_dir
+
+    return env
+
+
 def run_python_code(code: str, input_data: str, timeout: int = 2) -> tuple[str, str]:
     """
     Chạy code Python với input_data.
     Trả về (stdout, stderr).
     """
-    # Tạo file tạm để chứa code và input
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8') as f:
-        f.write(code)
-        code_file = f.name
-
     try:
-        # Chạy code
-        result = subprocess.run(
-            [sys.executable, code_file],
-            input=input_data,
-            text=True,
-            capture_output=True,
-            timeout=timeout
-        )
+        with tempfile.TemporaryDirectory(prefix="python-grader-") as working_dir:
+            code_file = os.path.join(working_dir, "submission.py")
+            with open(code_file, "w", encoding="utf-8") as code_stream:
+                code_stream.write(code)
+
+            result = subprocess.run(
+                [sys.executable, code_file],
+                input=input_data,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                capture_output=True,
+                timeout=timeout,
+                env=_student_process_environment(working_dir),
+                cwd=working_dir,
+            )
         return result.stdout, result.stderr
     except subprocess.TimeoutExpired:
         return "", "Time Limit Exceeded"
     except Exception as e:
         return "", str(e)
-    finally:
-        # Dọn dẹp file tạm
-        if os.path.exists(code_file):
-            os.remove(code_file)
 
 def evaluate_submission(
     student_code: str,
